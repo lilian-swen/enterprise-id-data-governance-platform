@@ -1,0 +1,16 @@
+${AnsiColor.BRIGHT_CYAN}
+  _____ _____         _____  ______      ________ _____  _   _
+ |_   _|  __ \       / ____|/ __ \ \    / /  ____|  __ \| \ | |
+   | | | |  | |_____| |  __| |  | \ \  / /| |__  | |__) |  \| |
+   | | | |  | |_____| | |_ | |  | |\ \/ / |  __| |  _  /| . ` |
+  _| |_| |__| |     | |__| | |__| | \  /  | |____| | \ \| |\  |
+ |_____|_____/       \_____|\____/   \/   |______|_|  \_\_| \_|
+${AnsiColor.DEFAULT}
+ ${AnsiStyle.BOLD}Enterprise Identity & Data Governance Platform${AnsiStyle.NORMAL}
+ ------------------------------------------------------------------
+ ${AnsiColor.BRIGHT_WHITE}DEVELOPER${AnsiColor.DEFAULT}  : Lilian S.
+ ${AnsiColor.BRIGHT_WHITE}CONTACT${AnsiColor.DEFAULT}    : lilian.swen [at] outlook.com
+ ${AnsiColor.BRIGHT_WHITE}VERSION${AnsiColor.DEFAULT}    : ${application.version}
+ ${AnsiColor.BRIGHT_WHITE}FRAMEWORK${AnsiColor.DEFAULT}  : Spring Boot (v${spring-boot.version})
+ ------------------------------------------------------------------
+ ${AnsiColor.GREEN}>> System status: INITIALIZING${AnsiColor.DEFAULT}

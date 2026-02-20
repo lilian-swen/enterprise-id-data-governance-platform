@@ -1,0 +1,41 @@
+# Production-specific constraints
+spring:
+  datasource:
+    # Inject values via Environment Variables in Docker/Kubernetes
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useSSL=true&serverTimezone=UTC
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    # Production Grade Pooling
+    initialSize: 10
+    minIdle: 10
+    maxActive: 100
+    maxWait: 60000
+    testWhileIdle: true
+    validationQuery: SELECT 1
+
+# Druid Monitor - Protected in Prod
+druid:
+  monitor:
+    username: ${DRUID_ADMIN_USER:admin}
+    password: ${DRUID_ADMIN_PWD}
+    allow-ip: ${ALLOWED_IPS:127.0.0.1}
+
+redis:
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT:6379}
+  password: ${REDIS_PASSWORD}
+  pool:
+    max-total: 50
+    max-idle: 20
+
+logging:
+  level:
+    root: WARN # Reduce log noise in production
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

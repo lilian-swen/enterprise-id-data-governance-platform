@@ -1,0 +1,16 @@
+# Build folders
+target/
+*.class
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iml
+
+# Logs
+logs/
+*.log
+
+# Maven Wrapper (Optional to ignore)
+.mvn/
+mvnw
+mvnw.cmd

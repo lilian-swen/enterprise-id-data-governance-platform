@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # The Identity Governance Spring Boot App
+  app:
+    build: .
+    ports:
+      - "8082:8082"
+    environment:
+      # Overriding YAML properties for the container network
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/data_governance_db?characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=Lilian
+      - SPRING_DATASOURCE_PASSWORD=helloworld
+      - REDIS_HOST=redis
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./logs:/app/logs
+
+  # MySQL Database - Matching your dev driver and schema
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=data_governance_db
+      - MYSQL_USER=Lilian
+      - MYSQL_PASSWORD=helloworld
+      - MYSQL_ROOT_PASSWORD=rootpassword
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # Redis - Used for Session and Hot ACL caching
+  redis:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  mysql_data:
