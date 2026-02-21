@@ -15,20 +15,24 @@
     <result column="operate_time" property="operateTime" jdbcType="TIMESTAMP" />
     <result column="operate_ip" property="operateIp" jdbcType="VARCHAR" />
   </resultMap>
+
   <sql id="Base_Column_List" >
     id, code, name, acl_module_id, url, type, status, seq, remark, operator, operate_time, 
     operate_ip
   </sql>
+
   <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
     select 
     <include refid="Base_Column_List" />
     from sys_acl
     where id = #{id,jdbcType=INTEGER}
   </select>
+
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
     delete from sys_acl
     where id = #{id,jdbcType=INTEGER}
   </delete>
+
   <insert id="insert" parameterType="com.idgovern.model.SysAcl" >
     insert into sys_acl (id, code, name, 
       acl_module_id, url, type, 
@@ -41,6 +45,7 @@
       #{operator,jdbcType=VARCHAR}, #{operateTime,jdbcType=TIMESTAMP}, #{operateIp,jdbcType=VARCHAR}
       )
   </insert>
+
   <insert id="insertSelective" parameterType="com.idgovern.model.SysAcl" keyProperty="id" useGeneratedKeys="true">
     insert into sys_acl
     <trim prefix="(" suffix=")" suffixOverrides="," >
@@ -120,6 +125,7 @@
       </if>
     </trim>
   </insert>
+
   <update id="updateByPrimaryKeySelective" parameterType="com.idgovern.model.SysAcl" >
     update sys_acl
     <set >
@@ -159,6 +165,7 @@
     </set>
     where id = #{id,jdbcType=INTEGER}
   </update>
+
   <update id="updateByPrimaryKey" parameterType="com.idgovern.model.SysAcl" >
     update sys_acl
     set code = #{code,jdbcType=VARCHAR},

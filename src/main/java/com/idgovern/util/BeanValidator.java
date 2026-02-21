@@ -62,6 +62,7 @@ public class BeanValidator {
      * @return a map of property paths and error messages, empty if no errors
      */
     public static <T> Map<String, String> validate(T t, Class... groups) {
+
         Validator validator = validatorFactory.getValidator();
         // Set validateResult = validator.validate(t, groups);
         Set<ConstraintViolation<T>> validateResult = validator.validate(t, groups);
@@ -95,6 +96,7 @@ public class BeanValidator {
      * @return a map of errors, empty if all objects are valid
      */
     public static Map<String, String> validateList(Collection<?> collection) {
+
         Preconditions.checkNotNull(collection);
         Iterator<?> iterator = collection.iterator();
         // Map errors;
@@ -104,8 +106,10 @@ public class BeanValidator {
             if (!iterator.hasNext()) {
                 return Collections.emptyMap();
             }
+
             Object object = iterator.next();
             errors = validate(object, new Class[0]);
+
         } while (errors.isEmpty());
 
         return errors;
@@ -145,9 +149,12 @@ public class BeanValidator {
      * @throws ParamException if validation errors are found
      */
     public static void check(Object param) throws ParamException {
+
         Map<String, String> map = BeanValidator.validateObject(param);
+
         if (MapUtils.isNotEmpty(map)) {
             throw new ParamException(map.toString());
         }
+
     }
 }

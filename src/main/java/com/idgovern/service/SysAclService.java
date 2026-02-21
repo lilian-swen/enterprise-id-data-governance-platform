@@ -1,8 +1,8 @@
 package com.idgovern.service;
 
 import com.google.common.base.Preconditions;
-import com.idgovern.beans.PageQuery;
-import com.idgovern.beans.PageResult;
+import com.idgovern.dto.PageQuery;
+import com.idgovern.dto.PageResult;
 import com.idgovern.common.RequestHolder;
 import com.idgovern.dao.SysAclMapper;
 import com.idgovern.exception.ParamException;
@@ -11,10 +11,12 @@ import com.idgovern.param.AclParam;
 import com.idgovern.util.BeanValidator;
 import com.idgovern.util.IpUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import java.text.SimpleDateFormat;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * ACL Service.
@@ -33,6 +35,11 @@ import java.util.List;
  * | Version | Date       | Author    | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-03-01 | Lilian S.| Initial creation                |
+ * | 1.1     | 2016-03-01 | Lilian S.| Code review and improving       |
+ * | 1). Enhanced logging and observability by integrating Lombok's @Slf4j. |
+ * | 2). Strengthened data consistency through Spring's @Transactional to ensure atomic operations.|
+ * | 3). Improved concurrency safety by removing non-thread-safe SimpleDateFormat and implementing UUID-based identifier generation to avoid collision under high concurrency.|
+ * | 4). Integrated AOP with Java 17 and Spring Boot 3. TODO: Clean up manual logging in SysAclService|
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
@@ -40,6 +47,7 @@ import java.util.List;
  * @since 1.0
  */
 @Service
+@Slf4j
 public class SysAclService {
 
     @Resource
@@ -51,14 +59,22 @@ public class SysAclService {
 
     /**
      * Create a new ACL point.
-     *
+     * Update:
      * @param param input parameters for creating ACL
      * @throws ParamException if a point with the same name exists under the same module
      */
+    @Transactional
     public void save(AclParam param) {
 
+        log.info("Receive request to create ACL. Name: [{}], ModuleId: [{}]", param.getName(), param.getAclModuleId());
+
         BeanValidator.check(param);
+
         if (checkExist(param.getAclModuleId(), param.getName(), param.getId())) {
+
+            log.warn("ACL creation failed: Name already exists. Name: [{}], ModuleId: [{}]",
+                    param.getName(), param.getAclModuleId());
+
             throw new ParamException("An ACL with the same name already exists in this module");
         }
 
@@ -78,10 +94,12 @@ public class SysAclService {
         acl.setOperateTime(new Date());
         acl.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
 
+        log.debug("Persisting new SysAcl entity: {}", acl);
         sysAclMapper.insertSelective(acl);
 
         // Save operation log
         sysLogService.saveAclLog(null, acl);
+        log.info("Successfully created ACL. ID: [{}], Code: [{}]", acl.getId(), acl.getCode());
 
     }
 
@@ -92,6 +110,7 @@ public class SysAclService {
      * @param param input parameters for updating ACL
      * @throws ParamException if a point with the same name exists under the same module
      */
+    @Transactional
     public void update(AclParam param) {
 
         BeanValidator.check(param);
@@ -141,14 +160,15 @@ public class SysAclService {
      *
      * <p>
      * The code format is yyyyMMddHHmmss_randomNumber (0-99) to ensure uniqueness.
+     * 2026-02-21, Lilian S.: Improve generateCode() logic for Integration with Distributed Systems
      * </p>
      *
      * @return generated ACL code
      */
     public String generateCode() {
 
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        return dateFormat.format(new Date()) + "_" + (int)(Math.random() * 100);
+        // Generates a 36-character unique string like: 550e8400-e29b-41d4-a716-446655440000
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
 
@@ -160,13 +180,26 @@ public class SysAclService {
      * @return PageResult containing ACL points and total count
      */
     public PageResult<SysAcl> getPageByAclModuleId(int aclModuleId, PageQuery page) {
+
         BeanValidator.check(page);
+
+        // 1. Get the total count
         int count = sysAclMapper.countByAclModuleId(aclModuleId);
 
         if (count > 0) {
+
+            // 2. Get the list of data
             List<SysAcl> aclList = sysAclMapper.getPageByAclModuleId(aclModuleId, page);
-            return PageResult.<SysAcl>builder().data(aclList).total(count).build();
+
+            // 3. Wrap it in our standard envelope
+            return PageResult.<SysAcl>builder()
+                    .data(aclList)
+                    .total(count)
+                    .pageNo(page.getPageNo())   // Echo back the page number
+                    .pageSize(page.getPageSize()) // Echo back the page size
+                    .build();
         }
-        return PageResult.<SysAcl>builder().build();
+
+        return PageResult.<SysAcl>builder().build(); // Empty result
     }
 }

@@ -1,7 +1,7 @@
 # Developer-specific overrides
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3307/data_governance_db?characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/data_governance_db?characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
     username: Lilian
     password: helloworld
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -27,6 +27,7 @@ logging:
   level:
     root: INFO
     com.idgovern.mapper: DEBUG # See SQL logs while developing
+    com.idgovern.aspect: INFO # Ensure aspect logs are visible
 
 springdoc:
   model-and-view-allowed: true

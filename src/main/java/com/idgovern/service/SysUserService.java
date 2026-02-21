@@ -1,8 +1,8 @@
 package com.idgovern.service;
 
 import com.google.common.base.Preconditions;
-import com.idgovern.beans.PageQuery;
-import com.idgovern.beans.PageResult;
+import com.idgovern.dto.PageQuery;
+import com.idgovern.dto.PageResult;
 import com.idgovern.common.RequestHolder;
 import com.idgovern.dao.SysUserMapper;
 import com.idgovern.exception.ParamException;

@@ -1,7 +1,7 @@
 package com.idgovern.controller;
 
-import com.idgovern.beans.PageQuery;
-import com.idgovern.beans.PageResult;
+import com.idgovern.dto.PageQuery;
+import com.idgovern.dto.PageResult;
 import com.idgovern.model.SysUser;
 import com.idgovern.param.UserParam;
 import com.idgovern.service.SysRoleService;

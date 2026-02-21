@@ -1,0 +1,53 @@
+@startuml
+autonumber
+skinparam Style strictuml
+title Sequence Diagram: SysAclService.save()
+
+actor "User/Client" as User
+participant "SysAclController" as Ctrl
+participant "SysAclService" as Service
+participant "BeanValidator" as Val
+participant "SysAclMapper" as Mapper
+participant "RequestHolder" as Holder
+participant "SysLogService" as Log
+
+User -> Ctrl : POST /save (AclParam)
+Ctrl -> Service : save(param)
+
+activate Service
+Service -> Val : check(param)
+activate Val
+Val --> Service : (void or Exception)
+deactivate Val
+
+Service -> Mapper : countByNameAndAclModuleId(...)
+activate Mapper
+Mapper --> Service : count
+deactivate Mapper
+
+alt #LightPink count > 0 (Duplicate Name)
+    Service -> Service : log.warn("ACL creation failed...")
+    Service --> Ctrl : throw ParamException
+else #LightGreen count == 0 (Valid)
+    Service -> Service : generateCode() (UUID)
+
+    Service -> Holder : getCurrentUser()
+    activate Holder
+    Holder --> Service : UserEntity
+    deactivate Holder
+
+    Service -> Mapper : insertSelective(acl)
+    activate Mapper
+    Mapper --> Service : success
+    deactivate Mapper
+
+    Service -> Log : saveAclLog(null, acl)
+    activate Log
+    Log --> Service : success
+    deactivate Log
+
+    Service --> Ctrl : return void (Success)
+end
+
+deactivate Service
+@enduml

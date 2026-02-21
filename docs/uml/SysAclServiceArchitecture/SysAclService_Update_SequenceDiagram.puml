@@ -1,0 +1,57 @@
+@startuml
+autonumber
+skinparam Style strictuml
+title Sequence Diagram: SysAclService.update()
+
+actor "Admin" as User
+participant "SysAclController" as Ctrl
+participant "SysAclService" as Service
+participant "BeanValidator" as Val
+participant "SysAclMapper" as Mapper
+participant "Preconditions" as Guard
+participant "RequestHolder" as Holder
+participant "SysLogService" as Log
+
+User -> Ctrl : PUT /update (AclParam)
+Ctrl -> Service : update(param)
+
+activate Service
+Service -> Val : check(param)
+activate Val
+Val --> Service : (Success)
+deactivate Val
+
+Service -> Service : checkExist(moduleId, name, id)
+activate Service
+Service -> Mapper : countByNameAndAclModuleId(...)
+Mapper --> Service : count
+deactivate Service
+
+alt #LightPink count > 0 (Name Conflict)
+    Service --> Ctrl : throw ParamException
+else #LightGreen count == 0 (Valid)
+    Service -> Mapper : selectByPrimaryKey(param.id)
+    activate Mapper
+    Mapper --> Service : SysAcl (before)
+    deactivate Mapper
+
+    Service -> Guard : checkNotNull(before, "not exist")
+
+    Service -> Holder : getCurrentUser()
+    Service -> Holder : getCurrentRequest()
+
+    Service -> Mapper : updateByPrimaryKeySelective(after)
+    activate Mapper
+    Mapper --> Service : rowCount
+    deactivate Mapper
+
+    Service -> Log : saveAclLog(before, after)
+    activate Log
+    Log --> Service : success
+    deactivate Log
+
+    Service --> Ctrl : return void
+end
+
+deactivate Service
+@enduml

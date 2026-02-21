@@ -1,6 +1,6 @@
 package com.idgovern.controller;
 
-import com.idgovern.beans.PageQuery;
+import com.idgovern.dto.PageQuery;
 import com.idgovern.common.JsonData;
 import com.idgovern.param.SearchLogParam;
 import com.idgovern.service.SysLogService;

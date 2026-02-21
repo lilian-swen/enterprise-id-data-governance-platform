@@ -1,8 +1,8 @@
 package com.idgovern.controller;
 
 import com.google.common.collect.Maps;
-import com.idgovern.beans.PageQuery;
-import com.idgovern.beans.PageResult;
+import com.idgovern.dto.PageQuery;
+import com.idgovern.dto.PageResult;
 import com.idgovern.common.JsonData;
 import com.idgovern.model.SysUser;
 import com.idgovern.param.UserParam;

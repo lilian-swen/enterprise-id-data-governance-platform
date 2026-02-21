@@ -1,6 +1,6 @@
 package com.idgovern.dao;
 
-import com.idgovern.beans.PageQuery;
+import com.idgovern.dto.PageQuery;
 import com.idgovern.model.SysAcl;
 import org.apache.ibatis.annotations.Param;
 import java.util.List;

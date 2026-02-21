@@ -1,7 +1,5 @@
 package com.idgovern.controller;
 
-import com.idgovern.beans.PageQuery;
-import com.idgovern.model.SysAcl;
 import com.idgovern.param.AclParam;
 import com.idgovern.service.SysAclService;
 import com.idgovern.service.SysRoleService;

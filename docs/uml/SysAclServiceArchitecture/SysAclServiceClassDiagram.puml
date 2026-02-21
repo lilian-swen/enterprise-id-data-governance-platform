@@ -1,0 +1,75 @@
+@startuml
+skinparam classAttributeIconSize 0
+title Class Diagram - SysAclService Architecture
+
+package com.idgovern.service {
+    class SysAclService {
+        - sysAclMapper: SysAclMapper
+        - sysLogService: SysLogService
+        + save(param: AclParam): void
+        + update(param: AclParam): void
+        + checkExist(aclModuleId: int, name: String, id: Integer): boolean
+        + generateCode(): String
+        + getPageByAclModuleId(aclModuleId: int, page: PageQuery): PageResult<SysAcl>
+    }
+}
+
+package com.idgovern.dao {
+    interface SysAclMapper {
+        + insertSelective(record: SysAcl): int
+        + updateByPrimaryKeySelective(record: SysAcl): int
+        + selectByPrimaryKey(id: Integer): SysAcl
+        + countByNameAndAclModuleId(moduleId: int, name: String, id: Integer): int
+        + countByAclModuleId(moduleId: int): int
+        + getPageByAclModuleId(moduleId: int, page: PageQuery): List<SysAcl>
+    }
+}
+
+package com.idgovern.model {
+    class SysAcl <<Entity>> {
+        - id: Integer
+        - code: String
+        - name: String
+        - aclModuleId: Integer
+        - url: String
+        - type: Integer
+        - status: Integer
+        - seq: Integer
+        - remark: String
+        - operator: String
+        - operateTime: Date
+        - operateIp: String
+    }
+}
+
+package com.idgovern.param {
+    class AclParam <<DTO>> {
+        - id: Integer
+        - name: String
+        - aclModuleId: Integer
+        - url: String
+        - type: Integer
+        - status: Integer
+        - seq: Integer
+        - remark: String
+    }
+}
+
+package com.idgovern.util {
+    class BeanValidator {
+        + {static} check(obj: Object): void
+    }
+    class IpUtil {
+        + {static} getRemoteIp(request: HttpServletRequest): String
+    }
+}
+
+' Relationships
+SysAclService --> SysAclMapper : @Resource
+SysAclService --> SysLogService : @Resource
+SysAclService ..> BeanValidator : uses
+SysAclService ..> AclParam : processes
+SysAclService ..> SysAcl : manages
+SysAclService ..> IpUtil : uses
+
+@enduml

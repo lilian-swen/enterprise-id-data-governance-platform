@@ -37,6 +37,7 @@ The project follows a clean, layered architecture to ensure maintainability and 
 - **Business Logic (Service Layer):** Encapsulates business logic, validation, and audit logging.
 - **Data Access (DAO/MapperLayer):** MyBatis XML Mappers for optimized SQL execution and flexible data modeling.
 - **Security Context:** Custom RequestHolder to manage thread-local user sessions.
+- using different POJOs (Model, DTO, Bean, Param) help decouple the database layer from the UI layer
 
 
 ```azure

@@ -28,10 +28,11 @@ import org.hibernate.validator.constraints.NotBlank;
  * | Version | Date       | Author    | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-17 | Lilian S.| Initial creation                |
+ * | 1.1     | 2026-01-26 | Lilian S.| Upgraded Swagger to the latest stable version |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 @Getter
@@ -52,7 +53,7 @@ public class AclParam {
     @Schema(description = "ID of the parent ACL module grouping this permission", example = "5")
     private Integer aclModuleId;
 
-    @Length(min = 6, max = 100, message = "min = 6, max = 100, message = \"Permission URL length must be between 6 and 100 characters\"")
+    @Length(min = 6, max = 100, message = "Permission URL length must be between 6 and 100 characters")
     @Schema(description = "System resource URL or API path protected by this ACL", example = "/sys/user/update.json")
     private String url;
 

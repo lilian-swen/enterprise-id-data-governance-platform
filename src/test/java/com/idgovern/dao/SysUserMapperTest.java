@@ -1,6 +1,6 @@
 package com.idgovern.dao;
 
-import com.idgovern.beans.PageQuery;
+import com.idgovern.dto.PageQuery;
 import com.idgovern.model.SysUser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

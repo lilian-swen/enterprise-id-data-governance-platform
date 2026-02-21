@@ -1,7 +1,7 @@
 package com.idgovern.controller;
 
 import com.google.common.collect.Maps;
-import com.idgovern.beans.PageQuery;
+import com.idgovern.dto.PageQuery;
 import com.idgovern.common.JsonData;
 import com.idgovern.common.RequestHolder;
 import com.idgovern.model.SysRole;
@@ -46,7 +46,7 @@ import java.util.Map;
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.2
  * @since 1.0
  */
 @Controller
