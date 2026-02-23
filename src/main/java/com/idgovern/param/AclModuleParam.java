@@ -1,14 +1,12 @@
 package com.idgovern.param;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.validator.constraints.Length;
-import org.hibernate.validator.constraints.NotBlank;
+import java.io.Serializable;
 
 
 /**
@@ -38,7 +36,9 @@ import org.hibernate.validator.constraints.NotBlank;
 @Setter
 @ToString
 @Schema(description = "Request payload for creating or updating ACL modules (permission categories)")
-public class AclModuleParam {
+public class AclModuleParam implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** ID of the ACL module. Optional for create, required for update */
     @Schema(description = "Unique module ID (Required for updates, omit for creation)", example = "1")
@@ -46,16 +46,18 @@ public class AclModuleParam {
 
     /** Name of the ACL module. Required, 2-20 characters */
     @NotBlank(message = "ACL module name cannot be empty")
-    @Length(min = 2, max = 20, message = "ACL module name length must be between 2 and 20 characters")
+    @Size(min = 2, max = 20, message = "Name must be between 2 and 20 characters")
     @Schema(description = "Name of the permission category", example = "User Management", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
     /** Parent ACL module ID. Defaults to 0 (top-level module) */
+    @NotNull(message = "Parent ID must be specified")
     @Schema(description = "Parent module ID. Use 0 for top-level categories.", example = "0", defaultValue = "0")
     private Integer parentId = 0;
 
     /** Display order of the module. Required */
-    @NotNull(message = "ACL module display order cannot be null")
+    @NotNull(message = "ACL module sequence order display cannot be null")
+    @Min(value = 0, message = "Sequence must be 0 or greater")
     @Schema(description = "Priority for sorting within the same level (lower numbers appear first)", example = "1")
     private Integer seq;
 
@@ -67,7 +69,7 @@ public class AclModuleParam {
     private Integer status;
 
     /** Additional remarks or description. Maximum 200 characters */
-    @Length(max = 200, message = "ACL module remark must be within 200 characters")
+    @Length(max = 200, message = "Remark must be within 200 characters")
     @Schema(description = "Additional description of the module's scope", example = "Contains all user-related permission points")
     private String remark;
 }

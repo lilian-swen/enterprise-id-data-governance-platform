@@ -1,6 +1,5 @@
 package com.idgovern.controller;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.idgovern.common.JsonData;
 import com.idgovern.model.SysUser;
@@ -18,11 +17,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import java.util.List;
 import java.util.Map;
@@ -49,16 +46,17 @@ import java.util.stream.Collectors;
  * | Version | Date       | Author    | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-28 | Lilian S. | Initial creation                |
- * | 1.1     | 2026-01-26 | Updated  | Professional Logging Strategy added|
+ * | 1.1     | 2026-01-26 | Lilian S. | Professional Logging Strategy added|
+ * | 1.2     | 2026-02-22 | Lilian S. | Refactored for AOP & Clean Architecture |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.2
  * @since 1.0
  */
-@Slf4j
-@Controller
+@RestController
 @RequestMapping("/sys/role")
+@RequiredArgsConstructor
 @Tag(name = "Role Management", description = "Operations for managing roles and their associations with users and permissions")
 @SecurityRequirement(name = "bearerAuth")
 public class SysRoleController {
@@ -100,10 +98,9 @@ public class SysRoleController {
      * @return ModelAndView pointing to the role page
      */
     @Operation(summary = "Render Role Page", description = "Returns the JSP view for the role management dashboard.")
-    @RequestMapping("role.page")
+    @GetMapping("/role.page")
     public ModelAndView page() {
 
-        log.info("Accessing role management page");
         return new ModelAndView("role");
     }
 
@@ -115,13 +112,10 @@ public class SysRoleController {
      * @return success response in JSON format
      */
     @Operation(summary = "Create Role", description = "Adds a new role to the system.")
-    @RequestMapping("/save.json")
-    @ResponseBody
-    public JsonData saveRole(@Parameter(description = "Role creation details") RoleParam param) {
+    @PostMapping("/save.json")
+    public JsonData saveRole(@Parameter(description = "Role creation details") @Valid @RequestBody RoleParam param) {
 
-        log.info("Creating new role: {}", param);
         sysRoleService.save(param);
-        log.info("Role created successfully: {}", param.getName());
         return JsonData.success();
     }
 
@@ -142,13 +136,10 @@ public class SysRoleController {
             @ApiResponse(responseCode = "404", description = "Target role ID not found"),
             @ApiResponse(responseCode = "403", description = "Insufficient permissions to modify roles")
     })
-    @RequestMapping("/update.json")
-    @ResponseBody
-    public JsonData updateRole(@Parameter(description = "Updated role object including ID", required = true) RoleParam param) {
+    @PutMapping("/update.json")
+    public JsonData updateRole(@Parameter(description = "Updated role object including ID", required = true) @Valid @RequestBody RoleParam param) {
 
-        log.info("Updating role: {}", param);
         sysRoleService.update(param);
-        log.info("Role updated successfully: id={}", param.getId());
         return JsonData.success();
     }
 
@@ -159,15 +150,10 @@ public class SysRoleController {
      * @return JSON response containing role list
      */
     @Operation(summary = "Get All Roles", description = "Retrieves a list of all defined roles in the system.")
-    @RequestMapping("/list.json")
-    @ResponseBody
+    @GetMapping("/list.json")
     public JsonData list() {
 
-        log.debug("Fetching all roles");
-        List<?> roles = sysRoleService.getAll();
-        log.debug("Total roles fetched: {}", roles.size());
-
-        return JsonData.success(roles);
+        return JsonData.success(sysRoleService.getAll());
     }
 
 
@@ -178,11 +164,9 @@ public class SysRoleController {
      * @return JSON response containing permission tree structure
      */
     @Operation(summary = "Get Role Permission Tree", description = "Retrieves the full ACL tree highlighting permissions currently assigned to the specified role.")
-    @RequestMapping("/roleTree.json")
-    @ResponseBody
+    @GetMapping("/roleTree.json")
     public JsonData roleTree(@Parameter(description = "Target Role ID", required = true) @RequestParam("roleId") int roleId) {
 
-        log.debug("Fetching permission tree for roleId={}", roleId);
         return JsonData.success(sysTreeService.roleTree(roleId));
     }
 
@@ -195,17 +179,13 @@ public class SysRoleController {
      * @return success response in JSON format
      */
     @Operation(summary = "Update Role Permissions", description = "Replaces the current ACL assignments for a role with a new set of permissions.")
-    @RequestMapping("/changeAcls.json")
-    @ResponseBody
+    @PutMapping("/changeAcls.json")
     public JsonData changeAcls(@Parameter(description = "Target Role ID", required = true) @RequestParam("roleId") int roleId,
                                @Parameter(description = "Comma-separated list of ACL IDs") @RequestParam(value = "aclIds", required = false, defaultValue = "") String aclIds) {
 
-        log.info("Updating ACLs for roleId={} with aclIds={}", roleId, aclIds);
         List<Integer> aclIdList = StringUtil.splitToListInt(aclIds);
         sysRoleAclService.changeRoleAcls(roleId, aclIdList);
-        log.info("ACLs updated successfully for roleId={}", roleId);
         return JsonData.success();
-
     }
 
 
@@ -217,16 +197,12 @@ public class SysRoleController {
      * @return success response in JSON format
      */
     @Operation(summary = "Update Role Users", description = "Updates the set of users assigned to a specific role.")
-    @RequestMapping("/changeUsers.json")
-    @ResponseBody
+    @PutMapping("/changeUsers.json")
     public JsonData changeUsers(@Parameter(description = "Target Role ID", required = true) @RequestParam("roleId") int roleId,
                                 @Parameter(description = "Comma-separated list of User IDs") @RequestParam(value = "userIds", required = false, defaultValue = "") String userIds) {
 
-        log.info("Updating users for roleId={} with userIds={}", roleId, userIds);
         List<Integer> userIdList = StringUtil.splitToListInt(userIds);
         sysRoleUserService.changeRoleUsers(roleId, userIdList);
-        log.info("Users updated successfully for roleId={} ({} users assigned)", roleId, userIdList.size());
-
         return JsonData.success();
 
     }
@@ -244,44 +220,27 @@ public class SysRoleController {
      * @return JSON response containing selected and unselected user lists
      */
     @Operation(summary = "Get Role User Assignments", description = "Retrieves two lists: users already assigned to the role and active users available for assignment.")
-    @RequestMapping("/users.json")
-    @ResponseBody
+    @GetMapping("/users.json")
     public JsonData users(@Parameter(description = "Target Role ID", required = true) @RequestParam("roleId") int roleId) {
-
-        log.debug("Fetching selected and unselected users for roleId={}", roleId);
 
         // Users currently assigned to the role
         List<SysUser> selectedUserList = sysRoleUserService.getListByRoleId(roleId);
-
         // All users in the system
         List<SysUser> allUserList = sysUserService.getAll();
 
-        List<SysUser> unselectedUserList = Lists.newArrayList();
-
         Set<Integer> selectedUserIdSet = selectedUserList.stream()
-                .map(sysUser -> sysUser.getId())
+                .map(SysUser::getId)
                 .collect(Collectors.toSet());
 
-        /*Set<Integer> selectedUserIdSet = selectedUserList.stream().
-                map(sysUser::sysUser.getId()).
-                collect(Collectors.toSet());*/
-
         // Identify active users not assigned to the role
-        for(SysUser sysUser : allUserList) {
-            if (sysUser.getStatus() == 1 && !selectedUserIdSet.contains(sysUser.getId())) {
-                unselectedUserList.add(sysUser);
-            }
-        }
-
-        // selectedUserList = selectedUserList.stream().security(sysUser -> sysUser.getStatus() != 1).collect(Collectors.toList());
+        List<SysUser> unselectedUserList = allUserList.stream()
+                .filter(user -> user.getStatus() == 1 && !selectedUserIdSet.contains(user.getId()))
+                .collect(Collectors.toList());
 
         // Build response structure
         Map<String, List<SysUser>> map = Maps.newHashMap();
         map.put("selected", selectedUserList);
         map.put("unselected", unselectedUserList);
-
-        log.debug("Selected users: {}, Unselected users: {}", selectedUserList.size(), unselectedUserList.size());
-
         return JsonData.success(map);
     }
 }

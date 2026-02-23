@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -139,7 +140,7 @@ public class SysRoleUserService {
                     .userId(userId)
                     .operator(RequestHolder.getCurrentUser().getUsername())
                     .operateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()))
-                    .operateTime(new Date())
+                    .operateTime(LocalDateTime.now())
                     .build();
             roleUserList.add(roleUser);
         }
@@ -163,7 +164,7 @@ public class SysRoleUserService {
         sysLog.setNewValue(after == null ? "" : JsonMapper.obj2String(after));
         sysLog.setOperator(RequestHolder.getCurrentUser().getUsername());
         sysLog.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        sysLog.setOperateTime(new Date());
+        sysLog.setOperateTime(LocalDateTime.now());
         sysLog.setStatus(1);
         sysLogMapper.insertSelective(sysLog);
     }

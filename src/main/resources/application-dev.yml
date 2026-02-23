@@ -26,8 +26,10 @@ redis:
 logging:
   level:
     root: INFO
-    com.idgovern.mapper: DEBUG # See SQL logs while developing
-    com.idgovern.aspect: INFO # Ensure aspect logs are visible
+    com.idgovern.mapper: DEBUG     # Essential for SQL debugging
+    com.idgovern.controller: DEBUG # Essential for request/parameter debugging
+    com.idgovern.service: INFO     # Keep at INFO unless debugging a specific bug
+    com.idgovern.aspect: DEBUG    # Set to DEBUG to see AOP execution timing
 
 springdoc:
   model-and-view-allowed: true

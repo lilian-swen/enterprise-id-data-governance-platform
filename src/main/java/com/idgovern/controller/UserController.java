@@ -5,21 +5,21 @@ import com.idgovern.service.SysUserService;
 import com.idgovern.util.MD5Util;
 import io.micrometer.common.util.StringUtils;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
 import java.io.IOException;
 
-import static com.alibaba.druid.support.jakarta.ResourceServlet.SESSION_USER_KEY;
 
 /**
  * Controller for user authentication and session management.
@@ -40,15 +40,16 @@ import static com.alibaba.druid.support.jakarta.ResourceServlet.SESSION_USER_KEY
  * | Version | Date       | Author   | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-17 | Lilian S.| Initial creation of UserController |
- * | 1.1     | 2026-01-26 | Updated  | Professional Logging Strategy added|
+ * | 1.1     | 2026-01-26 | Lilian S.  | Professional Logging Strategy added|
+ * | 1.2     | 2026-02-22 | Lilian S.| Refactored for AOP & Clean Architecture |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.2
  * @since 1.0
  */
-@Slf4j
 @Controller
+@RequiredArgsConstructor
 @Tag(name = "Authentication Management", description = "Endpoints for user session lifecycle, including login and logout operations")
 public class UserController {
 
@@ -59,8 +60,7 @@ public class UserController {
      * Logs out the current user by invalidating the session
      * and redirects to the login page.
      *
-     * @param request  HTTP request
-     * @param response HTTP response
+     * @param session HTTP session
      * @throws IOException      if an input/output error occurs
      * @throws ServletException if a servlet error occurs
      */
@@ -68,36 +68,13 @@ public class UserController {
             summary = "User Logout",
             description = "Invalidates the current HTTP session and clears the security context. Redirects to the login page upon completion."
     )
-    @RequestMapping("/logout.page")
-    public void logout(HttpServletRequest request,
-                       HttpServletResponse response) throws IOException {
+    @GetMapping("/logout.page")
+    public String logout(HttpSession session) {
 
-        String username = null;
+        // Log handled by HttpAspect; logic focuses on invalidation
+        session.invalidate();
+        return "redirect:signin.jsp";
 
-        try {
-            SysUser user = (SysUser) request.getSession().getAttribute(SysUser.SESSION_USER_KEY);
-
-            if (user != null) {
-                username = user.getUsername();
-            }
-
-            request.getSession().invalidate();;
-
-            log.info("User logout successful: username={}, ip={}",
-                    username,
-                    request.getRemoteAddr());
-
-            response.sendRedirect("signin.jsp");
-
-        } catch (Exception e) {
-
-            log.error("Logout failed: username={}, ip={}",
-                    username,
-                    request.getRemoteAddr(),
-                    e);
-
-            throw e;
-        }
     }
 
 
@@ -111,10 +88,12 @@ public class UserController {
      * optional redirection via 'ret' parameter.
      * </p>
      *
-     * @param request  HTTP request
-     * @param response HTTP response
-     * @throws IOException      if an input/output error occurs
-     * @throws ServletException if a servlet error occurs
+     * @param username the user-provided identifier (email or username)
+     * @param password the plain-text password to be encrypted and verified
+     * @param ret      optional redirect URL for post-authentication navigation
+     * @param request  the current HTTP request used for session management
+     * @return {@link ModelAndView} directing to the dashboard on success,
+     * or returning to the sign-in page with error metadata on failure
      */
     @Operation(
             summary = "User Login",
@@ -125,102 +104,40 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Returns to login page with error message if authentication fails"),
             @ApiResponse(responseCode = "500", description = "Internal system or database error")
     })
-    @RequestMapping("/login.page")
-    public void login(HttpServletRequest request,
-                      HttpServletResponse response) throws IOException, ServletException {
+    @PostMapping("/login.page")
+    public ModelAndView login(@RequestParam("username") String username,
+                              @RequestParam("password") String password,
+                              @RequestParam(value = "ret", required = false) String ret,
+                              HttpServletRequest request) {
 
-        String username = request.getParameter("username");
-        String password = request.getParameter("password");
-        String ret = request.getParameter("ret");
+        ModelAndView mav = new ModelAndView("signin.jsp");
+        mav.addObject("username", username);
+        mav.addObject("ret", ret);
 
-        String ip = request.getRemoteAddr();
-
-        log.info("Login attempt: username={}, ip={}", username, ip);
-
-        String errorMsg = "";
-
-        try {
-            // Validation
-            if (StringUtils.isBlank(username)) {
-
-                log.warn("Login failed: empty username, ip={}", ip);
-                errorMsg = "Username cannot be empty";
-
-            } else if (StringUtils.isBlank(password)) {
-
-                log.warn("Login failed: empty password, username={}, ip={}", username, ip);
-
-                errorMsg = "Password cannot be empty";
-                
-            } else {
-
-                SysUser sysUser = sysUserService.findByKeyword(username);
-
-                if (sysUser == null) {
-                    
-                    log.warn("Login failed: user not found, username={}, ip={}", username, ip);
-
-                    errorMsg = "User not found";
-                    
-                } else if (!sysUser.getPassword().equals(MD5Util.encrypt(password))) {
-
-                    log.warn("Login failed: incorrect password, username={}, ip={}", username, ip);
-                    
-                    errorMsg = "Incorrect username or password";
-                    
-                } else if (sysUser.getStatus() != 1) {
-
-                    log.warn("Login blocked: disabled user, username={}, ip={}", username, ip);
-
-                    errorMsg = "Account disabled";
-
-                } else {
-                    // SUCCESS LOGIN
-                    request.getSession().setAttribute(SysUser.SESSION_USER_KEY, sysUser);
-
-                    log.info("Login successful: username={}, userId={}, ip={}",
-                            sysUser.getUsername(),
-                            sysUser.getId(),
-                            ip);
-
-                    if (StringUtils.isNotBlank(ret)) {
-
-                        log.debug("Redirecting user={} to ret={}", username, ret);
-
-                        response.sendRedirect(ret);
-
-                    } else {
-
-                        log.debug("Redirecting user={} to admin dashboard", username);
-
-                        response.sendRedirect("/admin/index.page");
-                    }
-
-                    return;
-
-                }
-            }
-
-        } catch (Exception e) {
-
-            log.error("Login system error: username={}, ip={}", username, ip, e);
-
-            errorMsg = "System error, please contact administrator";
-
+        // Validation - Business logic delegates to service or keeps concise here
+        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
+            mav.addObject("error", "Username and password cannot be empty");
+            return mav;
         }
 
-        // If login fails, forward back to login page with error message
-        request.setAttribute("error", errorMsg);
-        request.setAttribute("username", username);
+        SysUser sysUser = sysUserService.findByKeyword(username);
 
-        if (StringUtils.isNotBlank(ret)) {
-            request.setAttribute("ret", ret);
+        // Security check logic
+        if (sysUser == null || !sysUser.getPassword().equals(MD5Util.encrypt(password))) {
+            mav.addObject("error", "Incorrect username or password");
+            return mav;
         }
 
-        log.debug("Forwarding login failure: username={}, ip={}", username, ip);
+        if (sysUser.getStatus() != 1) {
+            mav.addObject("error", "Account is disabled");
+            return mav;
+        }
 
-        String path = "signin.jsp";
+        // Establish Session
+        request.getSession().setAttribute(SysUser.SESSION_USER_KEY, sysUser);
 
-        request.getRequestDispatcher(path).forward(request, response);
+        // Redirect logic
+        String redirectUrl = StringUtils.isNotBlank(ret) ? "redirect:" + ret : "redirect:/admin/index.page";
+        return new ModelAndView(redirectUrl);
     }
 }

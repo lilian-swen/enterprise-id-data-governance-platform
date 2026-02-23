@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -87,7 +88,7 @@ public class SysDeptService {
         dept.setLevel(LevelUtil.calculateLevel(getLevel(param.getParentId()), param.getParentId()));
         dept.setOperator(RequestHolder.getCurrentUser().getUsername());
         dept.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        dept.setOperateTime(new Date());
+        dept.setOperateTime(LocalDateTime.now());
 
         // Persist department
         sysDeptMapper.insertSelective(dept);
@@ -127,7 +128,7 @@ public class SysDeptService {
         after.setLevel(LevelUtil.calculateLevel(getLevel(param.getParentId()), param.getParentId()));
         after.setOperator(RequestHolder.getCurrentUser().getUsername());
         after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        after.setOperateTime(new Date());
+        after.setOperateTime(LocalDateTime.now());
 
         // Update the department and child levels if hierarchy changed
         updateWithChild(before, after);

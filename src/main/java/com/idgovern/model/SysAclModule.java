@@ -1,9 +1,9 @@
 package com.idgovern.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import java.util.Date;
+import lombok.*;
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
 
 /**
  * System ACL Module Entity.
@@ -23,6 +23,7 @@ import java.util.Date;
  * | Version | Date       | Author   | Description                      |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-26 | Lilian S.| Initial creation of SysAclModule |
+ * | 1.1     | 2026-02-21 | Lilian S.| Use @Getter and @Setter at the class level and refactor the model accordingly. |
  * ------------------------------------------------------------------------
  *
  * Usage:
@@ -36,10 +37,15 @@ import java.util.Date;
  * @version 1.0
  * @since 1.0
  */
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SysAclModule {
+@ToString
+public class SysAclModule implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /** Unique identifier for the ACL module */
     private Integer id;
@@ -48,107 +54,40 @@ public class SysAclModule {
     private String name;
 
     /** Parent module ID; 0 indicates top-level module */
-    private Integer parentId;
+    @Builder.Default
+    private Integer parentId = 0;
 
     /** Level of the module in the hierarchy (e.g., "0", "0.1", "0.1.2") */
     private String level;
 
     /** Sequence number for ordering within the same level */
-    private Integer seq;
+    @Builder.Default
+    private Integer seq = 0;
 
     /** Status of the module (0: inactive, 1: active) */
-    private Integer status;
+    @Builder.Default
+    private Integer status = 1;
 
     /** Optional remark or description for the module */
     private String remark;
 
+    // Audit fields
     /** Operator who last modified the module */
     private String operator;
 
     /** Timestamp of last modification */
-    private Date operateTime;
+    private LocalDateTime operateTime;
 
     /** IP address of the operator at last modification */
     private String operateIp;
 
-    // =======================
-    // Getters and Setters
-    // =======================
-
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name == null ? null : name.trim();
-    }
-
-    public Integer getParentId() {
-        return parentId;
-    }
-
-    public void setParentId(Integer parentId) {
-        this.parentId = parentId;
-    }
-
-    public String getLevel() {
-        return level;
-    }
-
-    public void setLevel(String level) {
-        this.level = level == null ? null : level.trim();
-    }
-
-    public Integer getSeq() {
-        return seq;
-    }
-
-    public void setSeq(Integer seq) {
-        this.seq = seq;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public String getRemark() {
-        return remark;
-    }
-
+    // --- Custom Logic Setters ---
     public void setRemark(String remark) {
         this.remark = remark == null ? null : remark.trim();
     }
 
-    public String getOperator() {
-        return operator;
-    }
-
     public void setOperator(String operator) {
         this.operator = operator == null ? null : operator.trim();
-    }
-
-    public Date getOperateTime() {
-        return operateTime;
-    }
-
-    public void setOperateTime(Date operateTime) {
-        this.operateTime = operateTime;
-    }
-
-    public String getOperateIp() {
-        return operateIp;
     }
 
     public void setOperateIp(String operateIp) {

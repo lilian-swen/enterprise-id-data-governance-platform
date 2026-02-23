@@ -1,9 +1,7 @@
 package com.idgovern.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import java.util.Date;
+import lombok.*;
+import java.time.LocalDateTime;
 
 
 /**
@@ -28,12 +26,16 @@ import java.util.Date;
  * | Version | Date       | Author   | Description                      |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-22 | Lilian S.| Initial creation of SysRoleAcl   |
+ * | 1.1     | 2026-02-21 | Lilian S.| Use @Getter and @Setter at the class level and refactor the model accordingly. |
  * ------------------------------------------------------------------------
  *
  * @author Lilian
  * @version 1.0
  * @since 1.0
  */
+@Getter
+@Setter
+@ToString
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -52,56 +54,13 @@ public class SysRoleAcl {
     private String operator;
 
     /** Timestamp when the operation was performed */
-    private Date operateTime;
+    private LocalDateTime operateTime;
 
     /** IP address from which the operation was performed */
     private String operateIp;
 
-    // =======================
-    // Getters and Setters
-    // =======================
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getRoleId() {
-        return roleId;
-    }
-
-    public void setRoleId(Integer roleId) {
-        this.roleId = roleId;
-    }
-
-    public Integer getAclId() {
-        return aclId;
-    }
-
-    public void setAclId(Integer aclId) {
-        this.aclId = aclId;
-    }
-
-    public String getOperator() {
-        return operator;
-    }
-
     public void setOperator(String operator) {
         this.operator = operator == null ? null : operator.trim();
-    }
-
-    public Date getOperateTime() {
-        return operateTime;
-    }
-
-    public void setOperateTime(Date operateTime) {
-        this.operateTime = operateTime;
-    }
-
-    public String getOperateIp() {
-        return operateIp;
     }
 
     public void setOperateIp(String operateIp) {

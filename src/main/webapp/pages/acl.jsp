@@ -1,7 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <html>
 <head>
-    <title>Permissions</title>
+    <title>ACL Permissions</title>
     <jsp:include page="/common/backend_common.jsp"/>
     <jsp:include page="/common/page.jsp"/>
 </head>
@@ -11,10 +11,10 @@
 
 <div class="page-header">
     <h1>
-        Permission Management
+        ACL Permissions
         <small>
             <i class="ace-icon fa fa-angle-double-right"></i>
-            Maintain Permission Module–item Mappings
+            Manage Permission Mappings
         </small>
     </h1>
 </div>

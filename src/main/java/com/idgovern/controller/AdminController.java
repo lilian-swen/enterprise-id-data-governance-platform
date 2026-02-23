@@ -4,8 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -23,16 +24,17 @@ import org.springframework.web.servlet.ModelAndView;
  * | Version | Date       | Author   | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-17 | Lilian S.| Initial creation of AdminController |
- * | 1.1     | 2026-01-28 | Updated  | Controllers annotated with Swagger for better API documentation|
+ * | 1.1     | 2026-01-28 | Lilian S.| Controllers annotated with Swagger for better API documentation|
+ * | 1.2     | 2026-02-22 | Lilian S.| Refactored for AOP & Clean Architecture |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.2
  * @since 1.0
  */
-@Slf4j
 @Controller
 @RequestMapping("/admin")
+@RequiredArgsConstructor
 @Tag(name = "Admin UI Management", description = "Endpoints for managing and rendering the Administrative Dashboard")
 public class AdminController {
 
@@ -50,22 +52,11 @@ public class AdminController {
             @ApiResponse(responseCode = "302", description = "Redirect to login if session is invalid"),
             @ApiResponse(responseCode = "403", description = "Access denied for non-admin users")
     })
-    @RequestMapping("index.page")
+    @GetMapping("/index.page")
     public ModelAndView index() {
 
         // INFO: business-level event
-        log.info("Admin dashboard access request received");
-
-        // DEBUG: developer diagnostic info
-        if (log.isDebugEnabled()) {
-            log.debug("Rendering admin dashboard view: admin.jsp");
-        }
-
-        ModelAndView mav = new ModelAndView("admin");
-
-        // INFO: successful processing
-        log.info("Admin dashboard rendered successfully");
-
-        return mav;
+        // Business logic and logging are now handled by AOP (HttpAspect)
+        return new ModelAndView("admin");
     }
 }

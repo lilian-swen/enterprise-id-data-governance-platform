@@ -43,17 +43,6 @@ INSERT INTO `sys_acl_module` (`id`, `name`, `parent_id`, `level`, `seq`, `status
                                                                                                                                            (9,  'User Mgmt',               6, '0.6', 3, 1, NULL,                   'Admin', '2017-10-15 21:28:36', '::1'),
                                                                                                                                            (11, 'Audit Logs',              6, '0.6', 4, 1, NULL,                   'Admin', '2017-10-16 23:04:07', '::1');
 
--- -----------------------------------------------------------------------------
--- 2. SYSTEM PERMISSIONS (ACLs)
--- Types: 1=Menu, 2=Button, 3=Other API
--- -----------------------------------------------------------------------------
-INSERT INTO `sys_acl` (`id`, `code`, `name`, `acl_module_id`, `url`, `type`, `status`, `seq`, `operator`, `operate_ip`) VALUES
-                                                                                                                            (1, 'ACL_PROD_PAGE', 'View Product Page', 1,  '/sys/product/product.page', 1, 1, 1, 'Admin', '::1'),
-                                                                                                                            (2, 'ACL_PROD_LIST', 'Query Product List', 1, '/sys/product/page.json',    2, 1, 2, 'Admin', '::1'),
-                                                                                                                            (3, 'ACL_PROD_PUB',  'Publish Product',    1, '/sys/product/online.json',  2, 1, 3, 'Admin', '::1'),
-                                                                                                                            (7, 'ACL_ACL_PAGE',  'View ACL Page',      7, '/sys/aclModule/acl.page',   1, 1, 1, 'Admin', '::1'),
-                                                                                                                            (8, 'ACL_ROLE_PAGE', 'View Role Page',     8, '/sys/role/role.page',       1, 1, 1, 'Admin', '::1'),
-                                                                                                                            (9, 'ACL_USER_PAGE', 'View User Page',     9, '/sys/dept/dept.page',       1, 1, 1, 'Admin', '::1');
 
 -- -----------------------------------------------------------------------------
 -- 3. DEPARTMENTS

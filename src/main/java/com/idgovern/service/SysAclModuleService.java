@@ -11,11 +11,11 @@ import com.idgovern.util.BeanValidator;
 import com.idgovern.util.IpUtil;
 import com.idgovern.util.LevelUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -43,6 +43,7 @@ import java.util.List;
  * @since 1.0
  */
 @Service
+@Slf4j
 public class SysAclModuleService {
 
     @Resource
@@ -60,6 +61,7 @@ public class SysAclModuleService {
      * @param param input parameters for creating an ACL module
      * @throws ParamException if a module with the same name exists in the same hierarchy
      */
+    @Transactional // Ensure the whole save operation is atomic
     public void save(AclModuleParam param) {
 
         BeanValidator.check(param);
@@ -80,7 +82,7 @@ public class SysAclModuleService {
         aclModule.setLevel(LevelUtil.calculateLevel(getLevel(param.getParentId()), param.getParentId()));
         aclModule.setOperator(RequestHolder.getCurrentUser().getUsername());
         aclModule.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        aclModule.setOperateTime(new Date());
+        aclModule.setOperateTime(LocalDateTime.now());
 
         sysAclModuleMapper.insertSelective(aclModule);
 
@@ -95,6 +97,7 @@ public class SysAclModuleService {
      * @param param input parameters for updating an ACL module
      * @throws ParamException if a module with the same name exists in the same hierarchy
      */
+    @Transactional // Fixes the internal call proxy issue
     public void update(AclModuleParam param) {
 
         BeanValidator.check(param);
@@ -119,7 +122,7 @@ public class SysAclModuleService {
         after.setLevel(LevelUtil.calculateLevel(getLevel(param.getParentId()), param.getParentId()));
         after.setOperator(RequestHolder.getCurrentUser().getUsername());
         after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        after.setOperateTime(new Date());
+        after.setOperateTime(LocalDateTime.now());
 
         // Update module along with any child modules if level changes
         updateWithChild(before, after);

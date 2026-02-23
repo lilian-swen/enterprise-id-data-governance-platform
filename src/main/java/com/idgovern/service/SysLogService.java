@@ -28,6 +28,7 @@ import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 
@@ -113,7 +114,7 @@ public class SysLogService {
                 });
                 afterDept.setOperator(RequestHolder.getCurrentUser().getUsername());
                 afterDept.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-                afterDept.setOperateTime(new Date());
+                afterDept.setOperateTime(LocalDateTime.now());
                 sysDeptMapper.updateByPrimaryKeySelective(afterDept);
                 saveDeptLog(beforeDept, afterDept);
                 break;
@@ -143,7 +144,7 @@ public class SysLogService {
 
                 afterAclModule.setOperator(RequestHolder.getCurrentUser().getUsername());
                 afterAclModule.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-                afterAclModule.setOperateTime(new Date());
+                afterAclModule.setOperateTime(LocalDateTime.now());
                 sysAclModuleMapper.updateByPrimaryKeySelective(afterAclModule);
                 saveAclModuleLog(beforeAclModule, afterAclModule);
                 break;
@@ -157,7 +158,7 @@ public class SysLogService {
                 });
                 afterAcl.setOperator(RequestHolder.getCurrentUser().getUsername());
                 afterAcl.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-                afterAcl.setOperateTime(new Date());
+                afterAcl.setOperateTime(LocalDateTime.now());
                 sysAclMapper.updateByPrimaryKeySelective(afterAcl);
                 saveAclLog(beforeAcl, afterAcl);
                 break;
@@ -171,7 +172,7 @@ public class SysLogService {
                 });
                 afterRole.setOperator(RequestHolder.getCurrentUser().getUsername());
                 afterRole.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-                afterRole.setOperateTime(new Date());
+                afterRole.setOperateTime(LocalDateTime.now());
                 sysRoleMapper.updateByPrimaryKeySelective(afterRole);
                 saveRoleLog(beforeRole, afterRole);
                 break;
@@ -253,7 +254,7 @@ public class SysLogService {
         sysLog.setNewValue(after == null ? "" : JsonMapper.obj2String(after));
         sysLog.setOperator(RequestHolder.getCurrentUser().getUsername());
         sysLog.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        sysLog.setOperateTime(new Date());
+        sysLog.setOperateTime(LocalDateTime.now());
         sysLog.setStatus(1);
         sysLogMapper.insertSelective(sysLog);
     }
@@ -266,7 +267,7 @@ public class SysLogService {
         sysLog.setNewValue(after == null ? "" : JsonMapper.obj2String(after));
         sysLog.setOperator(RequestHolder.getCurrentUser().getUsername());
         sysLog.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        sysLog.setOperateTime(new Date());
+        sysLog.setOperateTime(LocalDateTime.now());
         sysLog.setStatus(1);
         sysLogMapper.insertSelective(sysLog);
     }
@@ -279,7 +280,7 @@ public class SysLogService {
         sysLog.setNewValue(after == null ? "" : JsonMapper.obj2String(after));
         sysLog.setOperator(RequestHolder.getCurrentUser().getUsername());
         sysLog.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        sysLog.setOperateTime(new Date());
+        sysLog.setOperateTime(LocalDateTime.now());
         sysLog.setStatus(1);
         sysLogMapper.insertSelective(sysLog);
     }
@@ -292,7 +293,7 @@ public class SysLogService {
         sysLog.setNewValue(after == null ? "" : JsonMapper.obj2String(after));
         sysLog.setOperator(RequestHolder.getCurrentUser().getUsername());
         sysLog.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        sysLog.setOperateTime(new Date());
+        sysLog.setOperateTime(LocalDateTime.now());
         sysLog.setStatus(1);
         sysLogMapper.insertSelective(sysLog);
     }
@@ -305,7 +306,7 @@ public class SysLogService {
         sysLog.setNewValue(after == null ? "" : JsonMapper.obj2String(after));
         sysLog.setOperator(RequestHolder.getCurrentUser().getUsername());
         sysLog.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        sysLog.setOperateTime(new Date());
+        sysLog.setOperateTime(LocalDateTime.now());
         sysLog.setStatus(1);
         sysLogMapper.insertSelective(sysLog);
     }

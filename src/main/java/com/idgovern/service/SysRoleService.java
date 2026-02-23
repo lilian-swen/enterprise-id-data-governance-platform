@@ -17,6 +17,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -105,7 +106,7 @@ public class SysRoleService {
         // Set audit information
         role.setOperator(RequestHolder.getCurrentUser().getUsername());
         role.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        role.setOperateTime(new Date());
+        role.setOperateTime(LocalDateTime.now());
 
         // Persist role
         sysRoleMapper.insertSelective(role);
@@ -144,7 +145,7 @@ public class SysRoleService {
         // Set audit information
         after.setOperator(RequestHolder.getCurrentUser().getUsername());
         after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
-        after.setOperateTime(new Date());
+        after.setOperateTime(LocalDateTime.now());
 
         // Update role
         sysRoleMapper.updateByPrimaryKeySelective(after);

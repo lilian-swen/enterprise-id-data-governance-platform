@@ -16,11 +16,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import java.util.Map;
 
@@ -52,16 +50,17 @@ import java.util.Map;
  * | Version | Date       | Author   | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-18 | Lilian S.| Initial creation                |
- * | 1.1     | 2016-02-26 | Updated  | Professional documentation added|
+ * | 1.1     | 2016-02-26 | Lilian S.| Professional documentation added|
+ * | 1.2     | 2026-02-22 | Lilian S.| Refactored for AOP & Clean Architecture |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.1
+ * @version 1.2
  * @since 1.0
  */
-@Slf4j
-@Controller
+@RestController
 @RequestMapping("/sys/user")
+@RequiredArgsConstructor
 @Tag(name = "User Management", description = "Operations for managing system users, including account lifecycle and authorization tracking")
 @SecurityRequirement(name = "bearerAuth")
 public class SysUserController {
@@ -91,10 +90,9 @@ public class SysUserController {
      * @return ModelAndView for noAuth page
      */
     @Operation(summary = "Render Access Denied Page", description = "Redirects users to the unauthorized access landing page.")
-    @RequestMapping("/noAuth.page")
+    @GetMapping("/noAuth.page")
     public ModelAndView noAuth() {
 
-        log.warn("Unauthorized access attempt");
         return new ModelAndView("noAuth");
     }
 
@@ -115,13 +113,10 @@ public class SysUserController {
             @ApiResponse(responseCode = "200", description = "User created successfully"),
             @ApiResponse(responseCode = "400", description = "Validation error (e.g., email already exists)")
     })
-    @RequestMapping("/save.json")
-    @ResponseBody
-    public JsonData saveUser(@Parameter(description = "New user account details") UserParam param) {
+    @PostMapping("/save.json")
+    public JsonData saveUser(@Parameter(description = "New user account details") @Valid @RequestBody UserParam param) {
 
-        log.info("Creating new user: {}", param.getUsername());
         sysUserService.save(param);
-        log.info("User '{}' created successfully", param.getUsername());
         return JsonData.success();
     }
 
@@ -138,13 +133,10 @@ public class SysUserController {
      * @return success response
      */
     @Operation(summary = "Update User Details", description = "Modifies existing user profile information, status, or department assignment.")
-    @RequestMapping("/update.json")
-    @ResponseBody
-    public JsonData updateUser(@Parameter(description = "Updated user profile object") UserParam param) {
+    @PutMapping("/update.json")
+    public JsonData updateUser(@Parameter(description = "Updated user profile object") @Valid @RequestBody UserParam param) {
 
-        log.info("Updating user: id={}, username={}", param.getId(), param.getUsername());
         sysUserService.update(param);
-        log.info("User '{}' updated successfully", param.getUsername());
         return JsonData.success();
     }
 
@@ -162,14 +154,11 @@ public class SysUserController {
      * @return paginated user result
      */
     @Operation(summary = "Get Paginated Users", description = "Retrieves a filtered list of users belonging to a specific department.")
-    @RequestMapping("/page.json")
-    @ResponseBody
+    @GetMapping("/page.json")
     public JsonData page(@Parameter(description = "ID of the target department", required = true, example = "1") @RequestParam("deptId") int deptId,
-                         @Parameter(description = "Pagination configuration (pageNo, pageSize)") PageQuery pageQuery) {
+                         @Parameter(description = "Pagination configuration (pageNo, pageSize)") @Valid PageQuery pageQuery) {
 
-        log.debug("Fetching users for deptId={} with pageQuery={}", deptId, pageQuery);
         PageResult<SysUser> result = sysUserService.getPageByDeptId(deptId, pageQuery);
-        log.debug("Fetched {} users for deptId={}", result.getData().size(), deptId);
         return JsonData.success(result);
 
     }
@@ -197,15 +186,12 @@ public class SysUserController {
             @ApiResponse(responseCode = "200", description = "User authorization data retrieved"),
             @ApiResponse(responseCode = "404", description = "User ID not found")
     })
-    @RequestMapping("/acls.json")
-    @ResponseBody
+    @GetMapping("/acls.json")
     public JsonData acls(@Parameter(description = "The unique user ID to query", required = true) @RequestParam("userId") int userId) {
 
-        log.debug("Fetching ACLs and roles for userId={}", userId);
         Map<String, Object> map = Maps.newHashMap();
         map.put("acls", sysTreeService.userAclTree(userId));
         map.put("roles", sysRoleService.getRoleListByUserId(userId));
-        log.debug("Fetched ACLs and roles for userId={}", userId);
         return JsonData.success(map);
 
     }

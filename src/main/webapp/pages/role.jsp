@@ -268,7 +268,7 @@
                 data : {
                     roleId: selectedRoleId
                 },
-                type: 'POST',
+                type: 'Get',
                 success: function (result) {
                     if (result.ret) {
                         renderRoleTree(result.data);
@@ -432,7 +432,7 @@
                 data: {
                     roleId: selectedRoleId
                 },
-                type: 'POST',
+                type: 'GET',
                 success: function (result) {
                     if (result.ret) {
                         var renderedSelect = Mustache.render(selectedUsersTemplate, {userList: result.data.selected});

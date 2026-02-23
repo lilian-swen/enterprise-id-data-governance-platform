@@ -11,10 +11,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 
@@ -31,14 +30,16 @@ import org.springframework.web.servlet.ModelAndView;
  * | Version | Date       | Author   | Description                           |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-28| Lilian S.| Initial creation of SysLogController  |
+ * | 1.1     | 2026-02-22| Lilian S.| Refactored for AOP & Clean Architecture |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
-@Controller
+@RestController
 @RequestMapping("/sys/log")
+@RequiredArgsConstructor
 @Tag(name = "Audit Log Management", description = "Operations for system auditing, activity tracking, and record recovery")
 @SecurityRequirement(name = "bearerAuth")
 public class SysLogController {
@@ -53,7 +54,7 @@ public class SysLogController {
      * @return ModelAndView for the log page
      */
     @Operation(summary = "Render Log Page", description = "Returns the JSP view for the system audit log dashboard.")
-    @RequestMapping("/log.page")
+    @GetMapping("/log.page")
     public ModelAndView page() {
         return new ModelAndView("log");
     }
@@ -74,9 +75,9 @@ public class SysLogController {
             @ApiResponse(responseCode = "400", description = "Recovery failed due to invalid log ID or data inconsistency"),
             @ApiResponse(responseCode = "403", description = "Insufficient permissions to perform recovery")
     })
-    @RequestMapping("/recover.json")
-    @ResponseBody
+    @PostMapping("/recover.json")
     public JsonData recover(@Parameter(description = "ID of the log entry to revert to", required = true, example = "500") @RequestParam("id") int id) {
+
         sysLogService.recover(id);
         return JsonData.success();
     }
@@ -93,9 +94,8 @@ public class SysLogController {
             summary = "Search Audit Logs",
             description = "Retrieves a paginated list of system operation logs based on filters like operator, target type, or time range."
     )
-    @RequestMapping("/page.json")
-    @ResponseBody
-    public JsonData searchPage(SearchLogParam param, PageQuery page) {
+    @GetMapping("/page.json")
+    public JsonData searchPage(@Valid SearchLogParam param, @Valid PageQuery page) {
         return JsonData.success(sysLogService.searchPageList(param, page));
     }
 }

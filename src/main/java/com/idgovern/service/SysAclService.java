@@ -14,9 +14,9 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 /**
  * ACL Service.
@@ -91,7 +91,7 @@ public class SysAclService {
         // Generate unique code for the ACL point
         acl.setCode(generateCode());
         acl.setOperator(RequestHolder.getCurrentUser().getUsername());
-        acl.setOperateTime(new Date());
+        acl.setOperateTime(LocalDateTime.now());
         acl.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
 
         log.debug("Persisting new SysAcl entity: {}", acl);
@@ -134,7 +134,7 @@ public class SysAclService {
                 .build();
 
         after.setOperator(RequestHolder.getCurrentUser().getUsername());
-        after.setOperateTime(new Date());
+        after.setOperateTime(LocalDateTime.now());
         after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
 
         sysAclMapper.updateByPrimaryKeySelective(after);

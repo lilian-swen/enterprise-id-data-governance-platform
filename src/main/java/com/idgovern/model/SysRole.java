@@ -1,9 +1,7 @@
 package com.idgovern.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import java.util.Date;
+import lombok.*;
+import java.time.LocalDateTime;
 
 
 /**
@@ -24,12 +22,16 @@ import java.util.Date;
  * | Version | Date       | Author    | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-22 | Lilian S. | Initial creation                |
+ * | 1.1     | 2026-02-21 | Lilian S.| Use @Getter and @Setter at the class level and refactor the model accordingly. |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
  * @version 1.0
  * @since 1.0
  */
+@Getter
+@Setter
+@ToString
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -73,71 +75,22 @@ public class SysRole {
     /**
      * Timestamp of the last modification.
      */
-    private Date operateTime;
-
+    private LocalDateTime operateTime;
     /**
      * IP address from which the operation was performed.
      */
     private String operateIp;
 
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
     public void setName(String name) {
         this.name = name == null ? null : name.trim();
-    }
-
-    public Integer getType() {
-        return type;
-    }
-
-    public void setType(Integer type) {
-        this.type = type;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public String getRemark() {
-        return remark;
     }
 
     public void setRemark(String remark) {
         this.remark = remark == null ? null : remark.trim();
     }
 
-    public String getOperator() {
-        return operator;
-    }
-
     public void setOperator(String operator) {
         this.operator = operator == null ? null : operator.trim();
-    }
-
-    public Date getOperateTime() {
-        return operateTime;
-    }
-
-    public void setOperateTime(Date operateTime) {
-        this.operateTime = operateTime;
-    }
-
-    public String getOperateIp() {
-        return operateIp;
     }
 
     public void setOperateIp(String operateIp) {

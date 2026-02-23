@@ -143,7 +143,7 @@
                         toTime: toTime,
                         type: type
                     },
-                    type: 'POST',
+                    type: 'GET',
                     success: function (result) {
                         renderLogListAndPage(result, url);
                     }

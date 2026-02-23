@@ -1,9 +1,7 @@
 package com.idgovern.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import java.util.Date;
+import lombok.*;
+import java.time.LocalDateTime;
 
 
 /**
@@ -24,6 +22,7 @@ import java.util.Date;
  * | Version | Date       | Author   | Description                    |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-02-17 | Lilian S.| Initial creation of SysLog      |
+ * | 1.1     | 2026-02-21 | Lilian S.| Use @Getter and @Setter at the class level and refactor the model accordingly. |
  * ------------------------------------------------------------------------
  *
  * Usage:
@@ -37,6 +36,9 @@ import java.util.Date;
  * @version 1.0
  * @since 1.0
  */
+@Getter
+@Setter
+@ToString
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -55,7 +57,7 @@ public class SysLog {
     private String operator;
 
     /** Timestamp of the operation */
-    private Date operateTime;
+    private LocalDateTime operateTime;
 
     /** IP address of the operator */
     private String operateIp;
@@ -66,59 +68,12 @@ public class SysLog {
     // =======================
     // Getters and Setters
     // =======================
-    public Integer getId() {
-        return id;
-    }
-
-    public void setId(Integer id) {
-        this.id = id;
-    }
-
-    public Integer getType() {
-        return type;
-    }
-
-    public void setType(Integer type) {
-        this.type = type;
-    }
-
-    public Integer getTargetId() {
-        return targetId;
-    }
-
-    public void setTargetId(Integer targetId) {
-        this.targetId = targetId;
-    }
-
-    public String getOperator() {
-        return operator;
-    }
 
     public void setOperator(String operator) {
         this.operator = operator == null ? null : operator.trim();
     }
 
-    public Date getOperateTime() {
-        return operateTime;
-    }
-
-    public void setOperateTime(Date operateTime) {
-        this.operateTime = operateTime;
-    }
-
-    public String getOperateIp() {
-        return operateIp;
-    }
-
     public void setOperateIp(String operateIp) {
         this.operateIp = operateIp == null ? null : operateIp.trim();
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
     }
 }

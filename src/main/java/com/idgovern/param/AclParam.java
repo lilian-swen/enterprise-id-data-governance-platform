@@ -1,14 +1,10 @@
 package com.idgovern.param;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.validator.constraints.Length;
-import org.hibernate.validator.constraints.NotBlank;
 
 
 /**
@@ -45,7 +41,7 @@ public class AclParam {
     private Integer id;
 
     @NotBlank(message = "Permission name cannot be empty")
-    @Length(min = 2, max = 20, message = "Permission name length must be between 2 and 20 characters")
+    @Size(min = 2, max = 30, message = "Permission name length must be between 2 and 30 characters")
     @Schema(description = "Human-readable name of the permission", example = "User Edit", requiredMode = Schema.RequiredMode.REQUIRED)
     private String name;
 
@@ -53,7 +49,7 @@ public class AclParam {
     @Schema(description = "ID of the parent ACL module grouping this permission", example = "5")
     private Integer aclModuleId;
 
-    @Length(min = 6, max = 100, message = "Permission URL length must be between 6 and 100 characters")
+    @Size(min = 6, max = 100, message = "Permission URL length must be between 6 and 100 characters")
     @Schema(description = "System resource URL or API path protected by this ACL", example = "/sys/user/update.json")
     private String url;
 
@@ -73,7 +69,7 @@ public class AclParam {
     @Schema(description = "Sorting order within the ACL module", example = "1")
     private Integer seq;
 
-    @Length(min = 0, max = 200, message = "Permission remark must not exceed 200 characters")
+    @Size(min = 0, max = 200, message = "Permission remark must not exceed 200 characters")
     @Schema(description = "Additional notes regarding the permission's scope", example = "Allows modifying existing user profiles")
     private String remark;
 }
