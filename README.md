@@ -19,7 +19,6 @@ Built with a strong emphasis on scalability, high availability, auditability, an
 - **Containerization and orchestration**: Docker and Kubernetes used for consistent deployment, service isolation, and dynamic scaling.
 <br>
 
-![Distributed-IAM-Data-Governance-Platform-Architecture.png](docs/uml/Distributed-IAM-Data-Governance-Platform-Architecture.png)
 
 **In this project showcase, certain implementation details are intentionally simplified to focus on core system design principles, architectural trade-offs, and key technical decisions.**
 
