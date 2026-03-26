@@ -5,11 +5,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.ModelAndView;
-
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 
 /**
@@ -32,6 +33,7 @@ import org.springframework.web.servlet.ModelAndView;
  * @version 1.2
  * @since 1.0
  */
+@Slf4j
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
@@ -52,11 +54,32 @@ public class AdminController {
             @ApiResponse(responseCode = "302", description = "Redirect to login if session is invalid"),
             @ApiResponse(responseCode = "403", description = "Access denied for non-admin users")
     })
-    @GetMapping("/index.page")
+    @GetMapping({"", "/", "/index.page"})
     public ModelAndView index() {
 
         // INFO: business-level event
-        // Business logic and logging are now handled by AOP (HttpAspect)
-        return new ModelAndView("admin");
+        // Business-level logging (NOT technical logging)
+        log.info("Admin dashboard accessed",
+                kv("event", "ADMIN_DASHBOARD_VIEW"),
+                kv("module", "admin"),
+                kv("view", "admin")
+        );
+
+        ModelAndView mv = new ModelAndView("admin");
+
+        /*
+         * DIAGNOSTIC LOG (DEBUG level)
+         *
+         * Purpose:
+         * - Helps developers troubleshoot view resolution issues
+         * - Disabled in production unless DEBUG enabled
+         */
+        if (log.isDebugEnabled()) {
+            log.debug("Resolved admin dashboard view",
+                    kv("view", mv),
+                    kv("controller", "AdminController"));
+        }
+
+        return mv;
     }
 }

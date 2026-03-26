@@ -1,0 +1,42 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+package "Service Layer" {
+    class SysRoleService {
+        - sysRoleMapper: SysRoleMapper
+        - sysRoleUserMapper: SysRoleUserMapper
+        - sysRoleAclMapper: SysRoleAclMapper
+        - sysUserMapper: SysUserMapper
+        - sysLogService: SysLogService
+        + save(param: RoleParam): void
+        + update(param: RoleParam): void
+        + getAll(): List<SysRole>
+        + getRoleListByUserId(userId: int): List<SysRole>
+        + getRoleListByAclId(aclId: int): List<SysRole>
+        + getUserListByRoleList(roleList: List<SysRole>): List<SysUser>
+        - checkExist(name: String, id: Integer): boolean
+    }
+}
+
+package "Data Access Layer (Mappers)" {
+    interface SysRoleMapper
+    interface SysRoleUserMapper
+    interface SysRoleAclMapper
+    interface SysUserMapper
+}
+
+package "Utilities & Logs" {
+    class SysLogService
+    class RequestHolder
+    class BeanValidator
+}
+
+SysRoleService --> SysRoleMapper
+SysRoleService --> SysRoleUserMapper
+SysRoleService --> SysRoleAclMapper
+SysRoleService --> SysUserMapper
+SysRoleService --> SysLogService
+SysRoleService ..> BeanValidator : uses
+SysRoleService ..> RequestHolder : fetches user
+
+@enduml

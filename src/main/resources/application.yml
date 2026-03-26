@@ -27,3 +27,10 @@ mybatis:
 server:
   port: ${SERVER_PORT:8082}
   shutdown: graceful # Industry standard for data integrity
+  # To enable SSL, uncomment the lines below and ensure keystore.p12 is in src/main/resources
+  # ssl:
+  #   enabled: true
+  #   key-store: classpath:keystore.p12
+  #   key-store-password: ${SSL_PASSWORD:helloworld}
+  #   key-store-type: PKCS12
+  #   key-alias: tomcat

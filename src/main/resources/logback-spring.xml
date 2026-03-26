@@ -1,39 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
-    <property name="LOG_PATH" value="./logs" />
-    <property name="APP_NAME" value="data-governance-platform" />
 
+<!--
+ ============================================================================
+  Logback Configuration for ID Governance Platform
+  Features:
+   - Console logging (dev-friendly)
+   - Rolling INFO file logs (size + time based)
+   - Rolling ERROR file logs (longer retention)
+   - Structured JSON logs (ELK / observability ready)
+   - Async appenders for performance
+   - Profile-based configuration (dev / prod)
+ ============================================================================
+-->
+
+<configuration>
+
+    <!-- ================================================================ -->
+    <!-- =============== Global Properties ============================== -->
+    <!-- ================================================================ -->
+
+    <!-- Base log directory -->
+    <property name="LOG_PATH" value="./logs"/>
+
+    <!-- Application name used in log filenames -->
+    <property name="APP_NAME" value="id-governance-platform"/>
+
+    <!-- Unified log pattern (avoid duplication across appenders) -->
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{traceId}] [%X{userId}] [%X{reqIp}] - %msg%n"/>
+
+    <!-- Graceful shutdown: wait for async tasks to flush logs -->
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+
+
+    <!-- ================================================================ -->
+    <!-- ===================== Console Appender ========================= -->
+    <!-- ================================================================ -->
+
+    <!--
+        Console logging:
+        - Used mainly in development
+        - Prints MDC fields (traceId, userId, reqIp)
+    -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{userId}] [%X{reqIp}] - %msg%n</pattern>
-            <charset>utf8</charset>
+            <pattern>${LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
+
+    <!-- ================================================================ -->
+    <!-- ===================== INFO File Appender ======================= -->
+    <!-- ================================================================ -->
+
+    <!--
+        INFO rolling file:
+        - Rotates daily
+        - Also rotates when file exceeds 100MB
+        - Keeps 30 days
+        - Total cap 3GB
+    -->
     <appender name="INFO_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/${APP_NAME}-info.log</file>
+
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/archived/info-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
             <maxFileSize>100MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>3GB</totalSizeCap>
         </rollingPolicy>
+
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{userId}] [%X{reqIp}] - %msg%n</pattern>
+            <pattern>${LOG_PATTERN}</pattern>
         </encoder>
+
+        <!-- Only log INFO and above -->
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>INFO</level>
         </filter>
     </appender>
 
+
+    <!-- ================================================================ -->
+    <!-- ===================== ERROR File Appender ====================== -->
+    <!-- ================================================================ -->
+
+    <!--
+        ERROR rolling file:
+        - Only logs ERROR level
+        - Keeps longer retention (90 days)
+        - Time-based rotation
+    -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/${APP_NAME}-error.log</file>
+
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/archived/error-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
-            <maxHistory>90</maxHistory> </rollingPolicy>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{userId}] [%X{reqIp}] - %msg%n</pattern>
+            <pattern>${LOG_PATTERN}</pattern>
         </encoder>
+
+        <!-- Strictly ERROR only -->
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <level>ERROR</level>
             <onMatch>ACCEPT</onMatch>
@@ -41,20 +112,117 @@
         </filter>
     </appender>
 
-    <springProfile name="dev">
-        <root level="INFO">
-            <appender-ref ref="CONSOLE" />
-            <appender-ref ref="INFO_FILE" />
-        </root>
-        <logger name="com.idgovern.mapper" level="DEBUG" /> </springProfile>
 
-    <springProfile name="prod">
-        <root level="INFO">
-            <appender-ref ref="INFO_FILE" />
-            <appender-ref ref="ERROR_FILE" />
+    <!-- ================================================================ -->
+    <!-- ===================== Structured JSON Logs ===================== -->
+    <!-- ================================================================ -->
+
+    <!--
+        Structured JSON logging:
+        - Optimized for ELK / Splunk / Datadog
+        - Uses UTC timestamps for distributed systems
+        - Includes MDC + stacktrace
+    -->
+    <appender name="STRUCTURED_JSON" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}-structured.json</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/archived/structured-%d{yyyy-MM-dd}.json.gz</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <logLevel/>
+                <loggerName/>
+                <threadName/>
+                <message/>
+                <mdc/>
+                <arguments/>
+                <stackTrace/>
+            </providers>
+        </encoder>
+    </appender>
+
+
+    <!-- ================================================================ -->
+    <!-- ===================== Async Wrappers =========================== -->
+    <!-- ================================================================ -->
+
+    <!--
+        Async improves throughput by decoupling logging from request thread.
+        NEVER use very small queues in high traffic systems.
+    -->
+
+    <appender name="ASYNC_INFO" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="INFO_FILE"/>
+    </appender>
+
+    <appender name="ASYNC_ERROR" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="ERROR_FILE"/>
+    </appender>
+
+    <appender name="ASYNC_JSON" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>2048</queueSize>
+        <neverBlock>true</neverBlock>
+        <appender-ref ref="STRUCTURED_JSON"/>
+    </appender>
+
+
+    <!-- ================================================================ -->
+    <!-- ===================== DEV Profile ============================== -->
+    <!-- ================================================================ -->
+
+    <!--
+        Development:
+        - Console enabled
+        - Debug logging allowed for mapper layer
+    -->
+    <springProfile name="dev">
+
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="ASYNC_INFO"/>
         </root>
-        <logger name="org.springframework" level="WARN" />
-        <logger name="com.alibaba.druid" level="WARN" />
+
+        <!-- SQL debugging -->
+        <logger name="com.idgovern.mapper" level="DEBUG"/>
+
+    </springProfile>
+
+
+    <!-- ================================================================ -->
+    <!-- ===================== PROD Profile ============================= -->
+    <!-- ================================================================ -->
+
+    <!--
+        Production:
+        - No console logging (clean container logs)
+        - Async file logging only
+        - JSON enabled for centralized logging
+        - Reduce noisy framework logs
+    -->
+    <springProfile name="prod">
+
+        <root level="INFO">
+            <appender-ref ref="ASYNC_INFO"/>
+            <appender-ref ref="ASYNC_ERROR"/>
+            <appender-ref ref="ASYNC_JSON"/>
+        </root>
+
+        <!-- Reduce framework noise -->
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="com.alibaba.druid" level="WARN"/>
+
     </springProfile>
 
 </configuration>

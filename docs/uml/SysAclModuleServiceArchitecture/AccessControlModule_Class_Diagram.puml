@@ -1,0 +1,111 @@
+@startuml SysAclModule_ClassDiagram
+
+title ACL Module - Class Diagram
+
+package "Service Layer" {
+
+  class SysAclModuleService {
+    +save(param: AclModuleParam): void
+    +update(param: AclModuleParam): void
+    +updateWithChild(before: SysAclModule, after: SysAclModule): void
+    +delete(aclModuleId: int): void
+    --
+    -checkExist(parentId: Integer, name: String, id: Integer): boolean
+    -getLevel(aclModuleId: Integer): String
+  }
+
+  class SysLogService {
+    +saveAclModuleLog(before: SysAclModule, after: SysAclModule): void
+  }
+
+}
+
+package "DAO Layer" {
+
+  interface SysAclModuleMapper {
+    +insertSelective(aclModule: SysAclModule): int
+    +updateByPrimaryKeySelective(aclModule: SysAclModule): int
+    +deleteByPrimaryKey(id: Integer): int
+    +selectByPrimaryKey(id: Integer): SysAclModule
+    +countByNameAndParentId(parentId: Integer, name: String, id: Integer): int
+    +countByParentId(parentId: Integer): int
+    +getChildAclModuleListByLevel(levelPrefix: String): List<SysAclModule>
+    +batchUpdateLevel(list: List<SysAclModule>): int
+  }
+
+  interface SysAclMapper {
+    +countByAclModuleId(aclModuleId: Integer): int
+  }
+
+}
+
+package "Domain Model" {
+
+  class SysAclModule {
+    -id: Integer
+    -name: String
+    -parentId: Integer
+    -level: String
+    -seq: Integer
+    -status: Integer
+    -remark: String
+    -operator: String
+    -operateIp: String
+    -operateTime: LocalDateTime
+  }
+
+}
+
+package "DTO / Param" {
+
+  class AclModuleParam {
+    -id: Integer
+    -name: String
+    -parentId: Integer
+    -seq: Integer
+    -status: Integer
+    -remark: String
+  }
+
+}
+
+package "Utility" {
+
+  class BeanValidator {
+    +check(obj: Object): void
+  }
+
+  class LevelUtil {
+    +calculateLevel(parentLevel: String, parentId: Integer): String
+  }
+
+  class RequestHolder {
+    +getCurrentUser(): User
+    +getCurrentRequest(): HttpServletRequest
+  }
+
+  class IpUtil {
+    +getRemoteIp(request: HttpServletRequest): String
+  }
+
+}
+
+class ParamException
+
+' ================= Relationships =================
+
+SysAclModuleService --> SysAclModuleMapper
+SysAclModuleService --> SysAclMapper
+SysAclModuleService --> SysLogService
+SysAclModuleService --> AclModuleParam
+SysAclModuleService --> SysAclModule
+SysAclModuleService --> BeanValidator
+SysAclModuleService --> LevelUtil
+SysAclModuleService --> RequestHolder
+SysAclModuleService --> IpUtil
+SysAclModuleService --> ParamException
+
+SysAclModuleMapper --> SysAclModule
+SysAclMapper --> SysAclModule
+
+@enduml

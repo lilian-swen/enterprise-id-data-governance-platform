@@ -14,10 +14,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import java.util.List;
-
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 /**
  * Department Management Controller.
@@ -45,6 +46,7 @@ import java.util.List;
  * @version 1.2
  * @since 1.0
  */
+@Slf4j
 @RestController
 @RequestMapping("/sys/dept")
 @RequiredArgsConstructor
@@ -67,6 +69,7 @@ public class SysDeptController {
     @GetMapping("/dept.page")
     public ModelAndView page() {
 
+        log.info("Loading department management page", kv("event", "DEPT_PAGE_LOAD"));
         return new ModelAndView("dept");
     }
 
@@ -83,9 +86,18 @@ public class SysDeptController {
             @ApiResponse(responseCode = "400", description = "Validation failed or circular parent reference")
     })
     @PostMapping("/save.json")
-    public JsonData saveDept(@Parameter(description = "Department creation parameters") @Valid @RequestBody DeptParam param) {
+    public JsonData saveDept(@Parameter(description = "Department creation parameters") @Valid DeptParam param) {
 
         sysDeptService.save(param);
+
+        log.info("Department created successfully",
+                kv("event", "DEPT_CREATE"),
+                kv("deptName", param.getName()),
+                kv("parentId", param.getParentId()),
+                kv("seq", param.getSeq()),
+                kv("status", param.getRemark())
+        );
+
         return JsonData.success();
     }
 
@@ -101,6 +113,8 @@ public class SysDeptController {
     public JsonData tree() {
 
         List<DeptLevelDto> dtoList = sysTreeService.deptTree();
+        log.info("Department tree retrieved", kv("event", "DEPT_TREE_LOAD"), kv("deptCount", dtoList.size()));
+
         return JsonData.success(dtoList);
     }
 
@@ -113,10 +127,20 @@ public class SysDeptController {
      * 2016-02-16
      */
     @Operation(summary = "Update Department", description = "Updates an existing department's details. Hierarchical shifts are validated.")
-    @PutMapping("/update.json")
-    public JsonData updateDept(@Parameter(description = "Updated department details") @Valid @RequestBody DeptParam param) {
+    @PostMapping("/update.json")
+    public JsonData updateDept(@Parameter(description = "Updated department details") @Valid DeptParam param) {
 
         sysDeptService.update(param);
+
+        log.info("Department updated successfully",
+                kv("event", "DEPT_UPDATE"),
+                kv("deptId", param.getId()),
+                kv("deptName", param.getName()),
+                kv("parentId", param.getParentId()),
+                kv("seq", param.getSeq()),
+                kv("status", param.getRemark())
+        );
+
         return JsonData.success();
     }
 
@@ -136,6 +160,8 @@ public class SysDeptController {
     public JsonData delete(@Parameter(description = "ID of department to remove", required = true) @RequestParam("id") int id) {
 
         sysDeptService.delete(id);
+        log.info("Department deleted successfully", kv("event", "DEPT_DELETE"), kv("deptId", id));
+
         return JsonData.success();
     }
 

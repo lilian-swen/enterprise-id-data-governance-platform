@@ -1,0 +1,104 @@
+@startuml
+!theme plain
+skinparam linetype ortho
+skinparam nodesep 100
+skinparam ranksep 100
+
+package "Identity & Org Structure" {
+  entity "sys_dept" as dept {
+    *id : INT <<PK>>
+    --
+    name : VARCHAR(50)
+    parent_id : INT <<FK>>
+    level : VARCHAR(255)
+    seq : INT
+    remark : VARCHAR(255)
+    ... audit fields ...
+  }
+
+  entity "sys_user" as user {
+    *id : INT <<PK>>
+    --
+    username : VARCHAR(20)
+    telephone : VARCHAR(13)
+    mail : VARCHAR(20)
+    password : VARCHAR(40)
+    dept_id : INT <<FK>>
+    status : INT
+    ... audit fields ...
+  }
+}
+
+package "RBAC & Permissions" {
+  entity "sys_role" as role {
+    *id : INT <<PK>>
+    --
+    name : VARCHAR(20)
+    type : INT
+    status : INT
+    remark : VARCHAR(200)
+    ... audit fields ...
+  }
+
+  entity "sys_role_user" as role_user {
+    *id : INT <<PK>>
+    --
+    role_id : INT <<FK>>
+    user_id : INT <<FK>>
+    ... audit fields ...
+  }
+
+  entity "sys_role_acl" as role_acl {
+    *id : INT <<PK>>
+    --
+    role_id : INT <<FK>>
+    acl_id : INT <<FK>>
+    ... audit fields ...
+  }
+
+  entity "sys_acl" as acl {
+    *id : INT <<PK>>
+    --
+    code : VARCHAR(50)
+    name : VARCHAR(50)
+    acl_module_id : INT <<FK>>
+    url : VARCHAR(255)
+    type : TINYINT
+    status : TINYINT
+    ... audit fields ...
+  }
+
+  entity "sys_acl_module" as acl_mod {
+    *id : INT <<PK>>
+    --
+    name : VARCHAR(50)
+    parent_id : INT <<FK>>
+    level : VARCHAR(255)
+    ... audit fields ...
+  }
+}
+
+entity "sys_log" as log {
+  *id : INT <<PK>>
+  --
+  type : INT
+  target_id : INT
+  old_value : TEXT
+  new_value : TEXT
+  status : INT
+  ... audit fields ...
+}
+
+' Relationships
+dept ||--o{ dept : "parent_id"
+dept ||--o{ user : "contains"
+user ||--o{ role_user : "assigned to"
+role ||--o{ role_user : "contains"
+role ||--o{ role_acl : "grants"
+acl  ||--o{ role_acl : "belongs to"
+acl_mod ||--o{ acl : "groups"
+acl_mod ||--o{ acl_mod : "parent_id"
+
+note right of log : Audit trail for all \nentity changes
+
+@enduml

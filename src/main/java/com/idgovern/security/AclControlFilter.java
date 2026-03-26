@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 
+
 /**
  * Access Control Filter (ACL Filter)
  *
@@ -84,7 +85,7 @@ public class AclControlFilter implements Filter {
 //        String exclusionUrls = filterConfig.getInitParameter("exclusionUrls");
 //        List<String> exclusionUrlList = Splitter.on(",").trimResults().omitEmptyStrings().splitToList(exclusionUrls);
 //        exclusionUrlSet = Sets.newConcurrentHashSet(exclusionUrlList);
-        // You can also configure exclusion URLs from web.xml if needed.
+        // Exclusion URLs can be configured in web.xml if needed.
         exclusionUrlSet.add(noAuthUrl);
         exclusionUrlSet.add("/signin.jsp");
         exclusionUrlSet.add("/admin/index.page");
@@ -110,7 +111,7 @@ public class AclControlFilter implements Filter {
         String servletPath = request.getServletPath();
         Map requestMap = request.getParameterMap();
 
-        // 1️. Skip excluded URLs
+        // 1️. Skip excluded URLs (White List handling)
         if (exclusionUrlSet.contains(servletPath)) {
             filterChain.doFilter(servletRequest, servletResponse);
             return;
@@ -145,6 +146,7 @@ public class AclControlFilter implements Filter {
     }
 
 
+
     /**
      * Handles unauthorized access.
      *
@@ -170,6 +172,7 @@ public class AclControlFilter implements Filter {
             return;
         }
     }
+
 
 
     /**
@@ -198,6 +201,7 @@ public class AclControlFilter implements Filter {
                         "</html>\n"
         );
     }
+
 
 
     /**

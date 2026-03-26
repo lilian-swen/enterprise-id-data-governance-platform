@@ -16,9 +16,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
+
 
 /**
  * Controller for managing Access Control List (ACL) entries.
@@ -46,6 +50,7 @@ import java.util.Map;
  * @version 1.3
  * @since 1.0
  */
+@Slf4j
 @RestController
 @RequestMapping("/sys/acl")
 @RequiredArgsConstructor
@@ -73,9 +78,24 @@ public class SysAclController {
             @ApiResponse(responseCode = "403", description = "Insufficient permissions")
     })
     @PostMapping("/save.json")
-    public JsonData saveAclModule(@Parameter(description = "ACL details") @Valid @RequestBody AclParam param) {
+    public JsonData saveAclModule(@Parameter(description = "ACL details") @Valid AclParam param) {
+
+        log.info("Creating ACL",
+                kv("event", "ACL_CREATE"),
+                kv("aclName", param.getName()),
+                kv("aclModuleId", param.getAclModuleId()),
+                kv("type", param.getType()),
+                kv("status", param.getStatus())
+        );
 
         sysAclService.save(param);
+
+        log.info("ACL created successfully",
+                kv("event", "ACL_CREATE_SUCCESS"),
+                kv("aclName", param.getName()),
+                kv("aclModuleId", param.getAclModuleId())
+        );
+
         return JsonData.success();
     }
 
@@ -92,10 +112,23 @@ public class SysAclController {
             @ApiResponse(responseCode = "404", description = "ACL entry not found"),
             @ApiResponse(responseCode = "403", description = "Insufficient permissions to update")
     })
-    @PutMapping("/update.json")
+    @PostMapping("/update.json")
     public JsonData updateAclModule(@Parameter(description = "Updated ACL details") @Valid @RequestBody AclParam param) {
 
+        log.info("Updating ACL",
+                kv("event", "ACL_UPDATE"),
+                kv("aclId", param.getId()),
+                kv("aclName", param.getName()),
+                kv("aclModuleId", param.getAclModuleId())
+        );
+
         sysAclService.update(param);
+
+        log.info("ACL updated successfully",
+                kv("event", "ACL_UPDATE_SUCCESS"),
+                kv("aclId", param.getId())
+        );
+
         return JsonData.success();
     }
 
@@ -116,6 +149,13 @@ public class SysAclController {
     public JsonData list(@Parameter(description = "ID of the parent ACL module", required = true, example = "1") @RequestParam("aclModuleId") Integer aclModuleId,
                          @Parameter(description = "Pagination and sorting criteria") @Valid PageQuery pageQuery) {
 
+        log.debug("Fetching ACL page",
+                kv("event", "ACL_PAGE_QUERY"),
+                kv("aclModuleId", aclModuleId),
+                kv("pageNo", pageQuery.getPageNo()),
+                kv("pageSize", pageQuery.getPageSize())
+        );
+
         return JsonData.success(sysAclService.getPageByAclModuleId(aclModuleId, pageQuery));
     }
 
@@ -135,10 +175,22 @@ public class SysAclController {
     public JsonData acls(@Parameter(description = "The unique ID of the ACL entry", required = true, example = "10")
                              @RequestParam("aclId") int aclId) {
 
+        log.debug("Fetching ACL associations",
+                kv("event", "ACL_ASSOC_QUERY"),
+                kv("aclId", aclId)
+        );
+
         Map<String, Object> map = Maps.newHashMap();
         List<SysRole> roleList = sysRoleService.getRoleListByAclId(aclId);
         map.put("roles", roleList);
         map.put("users", sysRoleService.getUserListByRoleList(roleList));
+
+        log.debug("ACL associations retrieved",
+                kv("event", "ACL_ASSOC_QUERY_SUCCESS"),
+                kv("aclId", aclId),
+                kv("roleCount", roleList.size())
+        );
+
         return JsonData.success(map);
     }
 }

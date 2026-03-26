@@ -133,7 +133,7 @@
             <tr>
                 <td><label for="userStatus">User Status</label></td>
                 <td>
-                    <select id="userStatus" name="status" data-placeholder="选择状态" style="width: 150px;">
+                    <select id="userStatus" name="status" data-placeholder="Choose Status" style="width: 150px;">
                         <option value="1">Active</option>
                         <option value="0">Inactive</option>
                         <option value="2">Deleted</option>

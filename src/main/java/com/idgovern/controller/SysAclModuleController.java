@@ -13,9 +13,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
-
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 /**
  * Controller for managing Access Control List (ACL) Modules.
@@ -45,6 +46,7 @@ import org.springframework.web.servlet.ModelAndView;
  * @version 1.2
  * @since 1.0
  */
+@Slf4j
 @RestController
 @RequestMapping("/sys/aclModule")
 @RequiredArgsConstructor // Generates constructor for final fields (Constructor Injection)
@@ -84,9 +86,24 @@ public class SysAclModuleController {
             @ApiResponse(responseCode = "400", description = "Invalid module hierarchy or data")
     })
     @PostMapping("/save.json")
-    public JsonData saveAclModule(@Parameter(description = "Module creation parameters") @Valid @RequestBody AclModuleParam param) {
+    public JsonData saveAclModule(@Parameter(description = "Module creation parameters") @Valid AclModuleParam param) {
+
+        log.info("Creating ACL module",
+                kv("event", "ACL_MODULE_CREATE"),
+                kv("moduleName", param.getName()),
+                kv("parentId", param.getParentId()),
+                kv("moduleSequence", param.getSeq()),
+                kv("status", param.getStatus())
+        );
 
         sysAclModuleService.save(param);
+
+        log.info("ACL module created successfully",
+                kv("event", "ACL_MODULE_CREATE_SUCCESS"),
+                kv("moduleName", param.getName()),
+                kv("parentId", param.getParentId())
+        );
+
         return JsonData.success();
     }
 
@@ -107,10 +124,23 @@ public class SysAclModuleController {
             @ApiResponse(responseCode = "404", description = "Target ACL module not found"),
             @ApiResponse(responseCode = "403", description = "Insufficient permissions to perform update")
     })
-    @PutMapping("/update.json")
-    public JsonData updateAclModule(@RequestBody @Valid AclModuleParam param) {
+    @PostMapping("/update.json")
+    public JsonData updateAclModule(@Valid AclModuleParam param) {
+
+        log.info("Updating ACL module",
+                kv("event", "ACL_MODULE_UPDATE"),
+                kv("moduleId", param.getId()),
+                kv("moduleName", param.getName()),
+                kv("parentId", param.getParentId())
+        );
 
         sysAclModuleService.update(param);
+
+        log.info("ACL module updated successfully",
+                kv("event", "ACL_MODULE_UPDATE_SUCCESS"),
+                kv("moduleId", param.getId())
+        );
+
         return JsonData.success();
 
     }
@@ -126,7 +156,14 @@ public class SysAclModuleController {
     @GetMapping("/tree.json")
     public JsonData tree() {
 
+        log.debug("Fetching ACL module tree",
+                kv("event", "ACL_MODULE_TREE_QUERY"));
+
         Object tree = sysTreeService.aclModuleTree();
+
+        log.debug("ACL module tree loaded successfully",
+                kv("event", "ACL_MODULE_TREE_QUERY_SUCCESS"));
+
         return JsonData.success(tree);
     }
 
@@ -145,7 +182,18 @@ public class SysAclModuleController {
     @DeleteMapping("/delete.json")
     public JsonData delete(@Parameter(description = "ID of the module to delete", required = true) @RequestParam("id") int id) {
 
+        log.warn("Deleting ACL module",
+                kv("event", "ACL_MODULE_DELETE"),
+                kv("moduleId", id)
+        );
+
         sysAclModuleService.delete(id);
+
+        log.info("ACL module deleted successfully",
+                kv("event", "ACL_MODULE_DELETE_SUCCESS"),
+                kv("moduleId", id)
+        );
+
         return JsonData.success();
     }
 }

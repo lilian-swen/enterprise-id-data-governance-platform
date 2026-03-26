@@ -1,0 +1,149 @@
+@startuml
+' ==========================================
+' Enterprise Identity & Data Governance ERD
+' ==========================================
+
+!theme plain
+hide methods
+hide stereotypes
+skinparam classAttributeIconSize 0
+
+' =========================
+' Entity Definitions
+' =========================
+
+entity "sys_user" as sys_user {
+    +id : INT <<PK>>
+    --
+    username : VARCHAR(20)
+    telephone : VARCHAR(13)
+    mail : VARCHAR(20)
+    password : VARCHAR(40)
+    dept_id : INT <<FK>>
+    status : INT
+    remark : VARCHAR(200)
+    operator : VARCHAR(20)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(20)
+}
+
+entity "sys_dept" as sys_dept {
+    +id : INT <<PK>>
+    --
+    name : VARCHAR(50)
+    parent_id : INT <<FK>>
+    level : VARCHAR(255)
+    seq : INT
+    remark : VARCHAR(255)
+    operator : VARCHAR(50)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(45)
+}
+
+entity "sys_role" as sys_role {
+    +id : INT <<PK>>
+    --
+    name : VARCHAR(20)
+    type : INT
+    status : INT
+    remark : VARCHAR(200)
+    operator : VARCHAR(20)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(20)
+}
+
+entity "sys_acl" as sys_acl {
+    +id : INT <<PK>>
+    --
+    code : VARCHAR(50)
+    name : VARCHAR(50)
+    acl_module_id : INT <<FK>>
+    url : VARCHAR(255)
+    type : TINYINT
+    status : TINYINT
+    seq : INT
+    remark : VARCHAR(255)
+    operator : VARCHAR(50)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(45)
+}
+
+entity "sys_acl_module" as sys_acl_module {
+    +id : INT <<PK>>
+    --
+    name : VARCHAR(50)
+    parent_id : INT <<FK>>
+    level : VARCHAR(255)
+    seq : INT
+    status : TINYINT
+    remark : VARCHAR(255)
+    operator : VARCHAR(50)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(45)
+}
+
+entity "sys_role_user" as sys_role_user {
+    +id : INT <<PK>>
+    --
+    role_id : INT <<FK>>
+    user_id : INT <<FK>>
+    operator : VARCHAR(20)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(20)
+}
+
+entity "sys_role_acl" as sys_role_acl {
+    +id : INT <<PK>>
+    --
+    role_id : INT <<FK>>
+    acl_id : INT <<FK>>
+    operator : VARCHAR(20)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(200)
+}
+
+entity "sys_log" as sys_log {
+    +id : INT <<PK>>
+    --
+    type : INT
+    target_id : INT
+    old_value : TEXT
+    new_value : TEXT
+    operator : VARCHAR(20)
+    operate_time : DATETIME
+    operate_ip : VARCHAR(20)
+    status : INT
+}
+
+' =========================
+' Relationships
+' =========================
+
+' Department hierarchy (self-reference)
+sys_dept ||--o{ sys_dept : parent-child
+
+' ACL module hierarchy
+sys_acl_module ||--o{ sys_acl_module : parent-child
+
+' User belongs to department
+sys_dept ||--o{ sys_user : contains
+
+' ACL belongs to ACL module
+sys_acl_module ||--o{ sys_acl : contains
+
+' Role-User many-to-many
+sys_user ||--o{ sys_role_user
+sys_role ||--o{ sys_role_user
+
+' Role-ACL many-to-many
+sys_role ||--o{ sys_role_acl
+sys_acl ||--o{ sys_role_acl
+
+' Logs reference entities logically
+sys_user .. sys_log
+sys_role .. sys_log
+sys_acl .. sys_log
+sys_dept .. sys_log
+sys_acl_module .. sys_log
+
+@enduml

@@ -18,10 +18,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import java.util.Map;
-
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 /**
  * System User Controller.
@@ -58,6 +59,7 @@ import java.util.Map;
  * @version 1.2
  * @since 1.0
  */
+@Slf4j
 @RestController
 @RequestMapping("/sys/user")
 @RequiredArgsConstructor
@@ -93,6 +95,7 @@ public class SysUserController {
     @GetMapping("/noAuth.page")
     public ModelAndView noAuth() {
 
+        log.warn("Unauthorized access attempted", kv("event", "USER_NO_AUTH"));
         return new ModelAndView("noAuth");
     }
 
@@ -114,9 +117,11 @@ public class SysUserController {
             @ApiResponse(responseCode = "400", description = "Validation error (e.g., email already exists)")
     })
     @PostMapping("/save.json")
-    public JsonData saveUser(@Parameter(description = "New user account details") @Valid @RequestBody UserParam param) {
+    public JsonData saveUser(@Parameter(description = "New user account details") @Valid UserParam param) {
 
         sysUserService.save(param);
+        log.info("Created new system user", kv("event", "USER_CREATE"), kv("username", param.getUsername()), kv("email", param.getMail()));
+
         return JsonData.success();
     }
 
@@ -133,10 +138,12 @@ public class SysUserController {
      * @return success response
      */
     @Operation(summary = "Update User Details", description = "Modifies existing user profile information, status, or department assignment.")
-    @PutMapping("/update.json")
-    public JsonData updateUser(@Parameter(description = "Updated user profile object") @Valid @RequestBody UserParam param) {
+    @PostMapping("/update.json")
+    public JsonData updateUser(@Parameter(description = "Updated user profile object") @Valid UserParam param) {
 
         sysUserService.update(param);
+        log.info("Updated system user", kv("event", "USER_UPDATE"), kv("userId", param.getId()), kv("username", param.getUsername()));
+
         return JsonData.success();
     }
 
@@ -159,6 +166,9 @@ public class SysUserController {
                          @Parameter(description = "Pagination configuration (pageNo, pageSize)") @Valid PageQuery pageQuery) {
 
         PageResult<SysUser> result = sysUserService.getPageByDeptId(deptId, pageQuery);
+        log.info("Fetched paginated users", kv("event", "USER_PAGE_FETCH"), kv("deptId", deptId),
+                kv("pageNo", pageQuery.getPageNo()), kv("pageSize", pageQuery.getPageSize()), kv("total", result.getTotal()));
+
         return JsonData.success(result);
 
     }
@@ -192,6 +202,13 @@ public class SysUserController {
         Map<String, Object> map = Maps.newHashMap();
         map.put("acls", sysTreeService.userAclTree(userId));
         map.put("roles", sysRoleService.getRoleListByUserId(userId));
+
+        log.info("Fetched user ACL and role info",
+                kv("event", "USER_ACL_FETCH"),
+                kv("userId", userId),
+                kv("aclCount", ((java.util.Collection<?>) map.get("acls")).size()), // Safer cast
+                kv("roleCount", ((java.util.List<?>) map.get("roles")).size()));
+
         return JsonData.success(map);
 
     }

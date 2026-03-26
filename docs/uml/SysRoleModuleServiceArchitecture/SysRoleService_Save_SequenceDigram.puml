@@ -1,0 +1,36 @@
+@startuml
+actor Admin
+participant "SysRoleService" as Service
+participant "BeanValidator" as Validator
+participant "SysRoleMapper" as Mapper
+participant "RequestHolder" as Holder
+participant "SysLogService" as LogService
+
+Admin -> Service : save(RoleParam)
+activate Service
+
+Service -> Validator : check(param)
+Validator --> Service : validation success
+
+Service -> Mapper : countByName(name, id)
+Mapper --> Service : count (0 if new)
+
+alt name exists
+    Service -> Admin : throw ParamException("Role name already exists")
+else name is unique
+    Service -> Holder : getCurrentUser()
+    Holder --> Service : SysUser object
+
+    Service -> Service : Build SysRole Entity
+
+    Service -> Mapper : insertSelective(role)
+    Mapper --> Service : success
+
+    Service -> LogService : saveRoleLog(null, role)
+    LogService --> Service : log saved
+
+    Service -> Admin : success response
+end
+
+deactivate Service
+@enduml

@@ -1,4 +1,4 @@
-@startuml
+AccessControl_UpdateACL_SequenceDiagram
 autonumber
 skinparam Style strictuml
 title Sequence Diagram: SysAclService.update()

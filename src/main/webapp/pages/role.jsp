@@ -385,7 +385,7 @@
                 type: 'POST',
                 success: function (result) {
                     if (result.ret) {
-                        showMessage("Save Role–Permission Relationship", "操作成功", false);
+                        showMessage("Save Role–Permission Relationship", "Success!!", false);
                     } else {
                         showMessage("Save Role–Permission Relationship", result.msg, false);
                     }

@@ -1,7 +1,5 @@
 package com.idgovern.service;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.idgovern.beans.LogType;
 import com.idgovern.common.RequestHolder;
 import com.idgovern.dao.SysLogMapper;
@@ -14,9 +12,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
-
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -67,14 +63,18 @@ public class SysRoleAclService {
      * @param roleId   the role identifier
      * @param aclIdList list of ACL IDs to assign to the role
      */
+    @Transactional
     public void changeRoleAcls(Integer roleId, List<Integer> aclIdList) {
 
-        List<Integer> originAclIdList = sysRoleAclMapper.getAclIdListByRoleIdList(Lists.newArrayList(roleId));
+        // 1. Fetch current IDs
+        List<Integer> originAclIdList = sysRoleAclMapper.getAclIdListByRoleIdList(List.of(roleId));
 
         // If the existing ACL list and the new list have the same size, check for differences
-        if (originAclIdList.size() == aclIdList.size()) {
-            Set<Integer> originAclIdSet = Sets.newHashSet(originAclIdList);
-            Set<Integer> aclIdSet = Sets.newHashSet(aclIdList);
+        if (Set.copyOf(originAclIdList).equals(Set.copyOf(aclIdList))) {
+
+            // 2. Performance Check: Use Sets for O(1) comparison
+            Set<Integer> originAclIdSet = Set.copyOf(originAclIdList);
+            Set<Integer> aclIdSet = Set.copyOf(aclIdList);
             originAclIdSet.removeAll(aclIdSet);
 
             if (CollectionUtils.isEmpty(originAclIdSet)) {
@@ -83,6 +83,7 @@ public class SysRoleAclService {
             }
         }
 
+        // 3. Execute Update & Log
         updateRoleAcls(roleId, aclIdList);
         saveRoleAclLog(roleId, originAclIdList, aclIdList);
     }
@@ -110,20 +111,24 @@ public class SysRoleAclService {
             return;
         }
 
-        List<SysRoleAcl> roleAclList = Lists.newArrayList();
-        for(Integer aclId : aclIdList) {
-            SysRoleAcl roleAcl = SysRoleAcl.builder()
-                    .roleId(roleId)
-                    .aclId(aclId)
-                    .operator(RequestHolder.getCurrentUser().getUsername())
-                    .operateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()))
-                    .operateTime(LocalDateTime.now())
-                    .build();
-            roleAclList.add(roleAcl);
-        }
+        String operator = RequestHolder.getCurrentUser().getUsername();
+        String operateIp = IpUtil.getRemoteIp(RequestHolder.getCurrentRequest());
+        LocalDateTime operateTime = LocalDateTime.now();
+
+        // Modern Stream mapping
+        List<SysRoleAcl> roleAclList = aclIdList.stream()
+                .map(aclId -> SysRoleAcl.builder()
+                        .roleId(roleId)
+                        .aclId(aclId)
+                        .operator(operator)
+                        .operateIp(operateIp)
+                        .operateTime(operateTime)
+                        .build())
+                .toList(); // JDK 16+ collector
 
         sysRoleAclMapper.batchInsert(roleAclList);
     }
+
 
     /**
      * Save a log entry recording the change of ACL assignments for a role.
@@ -137,11 +142,13 @@ public class SysRoleAclService {
      * @param after  ACL list after the change
      */
     private void saveRoleAclLog(int roleId, List<Integer> before, List<Integer> after) {
+
         SysLogWithBLOBs sysLog = new SysLogWithBLOBs();
         sysLog.setType(LogType.TYPE_ROLE_ACL);
         sysLog.setTargetId(roleId);
         sysLog.setOldValue(before == null ? "" : JsonMapper.obj2String(before));
         sysLog.setNewValue(after == null ? "" : JsonMapper.obj2String(after));
+
         sysLog.setOperator(RequestHolder.getCurrentUser().getUsername());
         sysLog.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
         sysLog.setOperateTime(LocalDateTime.now());

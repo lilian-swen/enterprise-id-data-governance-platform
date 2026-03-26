@@ -18,16 +18,25 @@ import org.springframework.beans.BeanUtils;
  * <p>
  * This class is typically used in tree structures for role-based access control
  * (RBAC) in the frontend.
+ *
+ * Explanation of "hasAcl": During permission assignment operations, a user must not grant permissions
+ * beyond the scope of their own authorized privileges (i.e., no privilege escalation).
+ *
+ * For example, although the current page may display the complete set of system permissions,
+ * the user can only assign permissions that they themselves possess when granting privileges to a role.
+ * They are not allowed to assign all permissions listed on the page unless those permissions are within
+ * their own authorization scope.
  * </p>
  *
  * ------------------------------------------------------------------------
  * | Version | Date       | Author   | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-03-02 | Lilian S.| Initial creation of AclDto      |
+ * | 1.1     | 2026-02-26 | Lilian S.| Enhanced code comments and documentation clarity |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 @Getter

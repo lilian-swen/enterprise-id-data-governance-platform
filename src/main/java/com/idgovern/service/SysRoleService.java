@@ -1,6 +1,5 @@
 package com.idgovern.service;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.idgovern.common.RequestHolder;
 import com.idgovern.dao.SysRoleAclMapper;
@@ -14,11 +13,10 @@ import com.idgovern.param.RoleParam;
 import com.idgovern.util.BeanValidator;
 import com.idgovern.util.IpUtil;
 import jakarta.annotation.Resource;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
-
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,6 +45,7 @@ import java.util.stream.Collectors;
  * @version 1.0
  * @since 1.0
  */
+@Slf4j
 @Service
 public class SysRoleService {
 
@@ -87,11 +86,17 @@ public class SysRoleService {
      */
     public void save(RoleParam param) {
 
+        log.info("Role creation requested name={}, type={}",
+                param.getName(), param.getType());
+
         // Validate request parameters
         BeanValidator.check(param);
 
         // Check role name uniqueness
         if (checkExist(param.getName(), param.getId())) {
+
+            log.warn("Role creation failed duplicate name={}",
+                    param.getName());
             throw new ParamException("Role name already exists");
         }
 
@@ -111,9 +116,14 @@ public class SysRoleService {
         // Persist role
         sysRoleMapper.insertSelective(role);
 
+        log.info("Role created successfully roleId={}, roleName={}",
+                role.getId(), role.getName());
+
         // Record audit log
         sysLogService.saveRoleLog(null, role);
     }
+
+
 
     /**
      * Updates an existing role.
@@ -122,17 +132,31 @@ public class SysRoleService {
      */
     public void update(RoleParam param) {
 
+        log.info("Role update requested roleId={}", param.getId());
+
         // Validate request parameters
         BeanValidator.check(param);
 
         // Check role name uniqueness
         if (checkExist(param.getName(), param.getId())) {
+
+            log.warn("Role update failed duplicate name={}, roleId={}",
+                    param.getName(), param.getId());
             throw new ParamException("Role name already exists");
         }
 
         // Retrieve existing role
         SysRole before = sysRoleMapper.selectByPrimaryKey(param.getId());
-        Preconditions.checkNotNull(before, "The role to be updated does not exist");
+
+        if (before == null) {
+
+            log.error("Role update failed role not found roleId={}",
+                    param.getId());
+
+            throw new IllegalStateException("Role not found");
+        }
+
+        //Preconditions.checkNotNull(before, "The role to be updated does not exist");
 
         SysRole after = SysRole.builder()
                 .id(param.getId())
@@ -150,9 +174,14 @@ public class SysRoleService {
         // Update role
         sysRoleMapper.updateByPrimaryKeySelective(after);
 
+        log.info("Role updated successfully roleId={}, oldName={}, newName={}",
+                before.getId(), before.getName(), after.getName());
+
         // Record audit log (before & after comparison)
         sysLogService.saveRoleLog(before, after);
     }
+
+
 
     /**
      * Retrieves all roles.
@@ -162,6 +191,8 @@ public class SysRoleService {
     public List<SysRole> getAll() {
         return sysRoleMapper.getAll();
     }
+
+
 
     /**
      * Checks whether a role name already exists.
@@ -173,6 +204,8 @@ public class SysRoleService {
     private boolean checkExist(String name, Integer id) {
         return sysRoleMapper.countByName(name, id) > 0;
     }
+
+
 
     /**
      * Retrieves roles assigned to a specific user.
@@ -192,6 +225,8 @@ public class SysRoleService {
 
     }
 
+
+
     /**
      * Retrieves roles associated with a specific permission (ACL).
      *
@@ -209,6 +244,8 @@ public class SysRoleService {
         return sysRoleMapper.getByIdList(roleIdList);
 
     }
+
+
 
 
     /**

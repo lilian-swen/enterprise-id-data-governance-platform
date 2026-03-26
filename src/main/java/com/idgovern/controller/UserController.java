@@ -11,12 +11,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import java.io.IOException;
 
@@ -48,7 +47,7 @@ import java.io.IOException;
  * @version 1.2
  * @since 1.0
  */
-@Controller
+@RestController
 @RequiredArgsConstructor
 @Tag(name = "Authentication Management", description = "Endpoints for user session lifecycle, including login and logout operations")
 public class UserController {
@@ -88,9 +87,6 @@ public class UserController {
      * optional redirection via 'ret' parameter.
      * </p>
      *
-     * @param username the user-provided identifier (email or username)
-     * @param password the plain-text password to be encrypted and verified
-     * @param ret      optional redirect URL for post-authentication navigation
      * @param request  the current HTTP request used for session management
      * @return {@link ModelAndView} directing to the dashboard on success,
      * or returning to the sign-in page with error metadata on failure
@@ -104,40 +100,43 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Returns to login page with error message if authentication fails"),
             @ApiResponse(responseCode = "500", description = "Internal system or database error")
     })
-    @PostMapping("/login.page")
-    public ModelAndView login(@RequestParam("username") String username,
-                              @RequestParam("password") String password,
-                              @RequestParam(value = "ret", required = false) String ret,
-                              HttpServletRequest request) {
+    @RequestMapping("/login.page")
+    public void login(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
-        ModelAndView mav = new ModelAndView("signin.jsp");
-        mav.addObject("username", username);
-        mav.addObject("ret", ret);
-
-        // Validation - Business logic delegates to service or keeps concise here
-        if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
-            mav.addObject("error", "Username and password cannot be empty");
-            return mav;
-        }
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
 
         SysUser sysUser = sysUserService.findByKeyword(username);
+        String errorMsg = "";
+        String ret = request.getParameter("ret");
 
-        // Security check logic
-        if (sysUser == null || !sysUser.getPassword().equals(MD5Util.encrypt(password))) {
-            mav.addObject("error", "Incorrect username or password");
-            return mav;
+        if (StringUtils.isBlank(username)) {
+            errorMsg = "User name cannot be null";
+        } else if (StringUtils.isBlank(password)) {
+            errorMsg = "Password cannot be null";
+        } else if (sysUser == null) {
+            errorMsg = "Cannot find the user in the system";
+        } else if (!sysUser.getPassword().equals(MD5Util.encrypt(password))) {
+            errorMsg = "Incorrect username or password";
+        } else if (sysUser.getStatus() != 1) {
+            errorMsg = "The user account has been suspended. Please contact the administrator.";
+        } else {
+            // login success
+            request.getSession().setAttribute("user", sysUser);
+            if (StringUtils.isNotBlank(ret)) {
+                response.sendRedirect(ret);
+            } else {
+                response.sendRedirect("/admin/index.page");
+            }
+            return;
         }
 
-        if (sysUser.getStatus() != 1) {
-            mav.addObject("error", "Account is disabled");
-            return mav;
+        request.setAttribute("error", errorMsg);
+        request.setAttribute("username", username);
+        if (StringUtils.isNotBlank(ret)) {
+            request.setAttribute("ret", ret);
         }
-
-        // Establish Session
-        request.getSession().setAttribute(SysUser.SESSION_USER_KEY, sysUser);
-
-        // Redirect logic
-        String redirectUrl = StringUtils.isNotBlank(ret) ? "redirect:" + ret : "redirect:/admin/index.page";
-        return new ModelAndView(redirectUrl);
+        String path = "signin.jsp";
+        request.getRequestDispatcher(path).forward(request, response);
     }
 }

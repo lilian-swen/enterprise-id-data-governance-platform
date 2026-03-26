@@ -34,7 +34,7 @@
                                     <option value="50">50</option>
                                     <option value="100">100</option>
                                 </select> records </label>
-                                <label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;类型
+                                <label> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Type
                                     <select id="search-type" name="dynamic-table_length" aria-controls="dynamic-table" class="form-control input-sm">
                                         <option value="">All</option>
                                         <option value="1">Department</option>
@@ -178,12 +178,12 @@
                             },
                             "showOldValue": function () {
                                 return function (text, render) {
-                                    return this.oldValue ? ((this.type == 6 || this.type == 7) ? this.oldValue : formatJson(this.oldValue)) : '无';
+                                    return this.oldValue ? ((this.type == 6 || this.type == 7) ? this.oldValue : formatJson(this.oldValue)) : 'None';
                                 }
                             },
                             "showNewValue": function () {
                                 return function (text, render) {
-                                    return this.newValue ? ((this.type == 6 || this.type == 7) ? this.newValue : formatJson(this.newValue)) : '无';
+                                    return this.newValue ? ((this.type == 6 || this.type == 7) ? this.newValue : formatJson(this.newValue)) : 'None';
                                 }
                             }
                         });

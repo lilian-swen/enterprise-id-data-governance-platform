@@ -15,6 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,9 @@ import java.util.stream.Collectors;
  * | Version | Date       | Author    | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-03-01 | Lilian S.| Initial creation                |
+ * | 1.1     | 2026-02-28 | Lilian S.| Enhanced high-concurrency resilience
+ * by applying a Double-Checked Locking (DCL) strategy to user-level cache keys,
+ * mitigating cache breakdown (hot key storm) caused by synchronized cache expiration under heavy traffic. |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
@@ -54,28 +58,34 @@ public class SysCoreService {
     @Resource
     private SysCacheService sysCacheService;
 
+    @Resource
+    private RedisService redisService;
+
 
     /**
-     * Retrieve ACL list for the currently logged-in user.
+     * Fetch the Access Control List (ACL) associated with the currently authenticated user session.
      *
      * @return list of permissions assigned to the current user
      */
     public List<SysAcl> getCurrentUserAclList() {
+
         int userId = RequestHolder.getCurrentUser().getId();
         return getUserAclList(userId);
     }
 
 
     /**
-     * Retrieve ACL list associated with a specific role.
+     * Fetch ACL permissions assigned to a specific role in batch.
      *
      * @param roleId role identifier
      * @return list of ACLs assigned to the role
      */
     public List<SysAcl> getRoleAclList(int roleId) {
+
         List<Integer> aclIdList = sysRoleAclMapper.getAclIdListByRoleIdList(Lists.<Integer>newArrayList(roleId));
 
         if (CollectionUtils.isEmpty(aclIdList)) {
+            // Returning an empty list instead of null to prevent NullPointerException
             return Lists.newArrayList();
         }
 
@@ -94,6 +104,13 @@ public class SysCoreService {
      *     <li>Fetch ACL IDs from roles.</li>
      *     <li>Return corresponding ACL entities.</li>
      * </ol>
+     *
+     * !!! Note: In a high-concurrency environment like Real-Time Fraud Detection,
+     * running these 3–4 database queries for every single user request is expensive.
+     *
+     * Common Optimization:
+     * Once this list is generated, it is often cached in Redis using a key like user_acl_{userId}.
+     * The cache would be cleared (evicted) only when the user's roles are updated or a permission is changed in the admin panel.
      * </p>
      *
      * @param userId user identifier
@@ -106,13 +123,11 @@ public class SysCoreService {
         }
 
         List<Integer> userRoleIdList = sysRoleUserMapper.getRoleIdListByUserId(userId);
-
         if (CollectionUtils.isEmpty(userRoleIdList)) {
             return Lists.newArrayList();
         }
 
         List<Integer> userAclIdList = sysRoleAclMapper.getAclIdListByRoleIdList(userRoleIdList);
-
         if (CollectionUtils.isEmpty(userAclIdList)) {
             return Lists.newArrayList();
         }
@@ -121,12 +136,86 @@ public class SysCoreService {
     }
 
 
+//    -------------- 2/28/2026 concurrency solution for getUserAclList Start ---------------
+    /**
+     * Retrieves the complete list of Access Control entries for a specific user,
+     * leveraging a multi-level resolution strategy (Super Admin check -> Redis Cache -> Database).
+     *
+     * <p>Optimized for high-concurrency environments using a Double-Checked Locking pattern
+     * on the user-specific cache key to prevent "Cache Breakdown" (Hotkey storm) when
+     * a cache entry expires under heavy load.</p>
+     *
+     * @param userId The unique identifier of the user.
+     * @return A {@link List} of {@link SysAcl} objects assigned to the user; returns an empty list if no permissions are found.
+     */
+    public List<SysAcl> getUserAclListWithCache(int userId) {
+        String cacheKey = "user_acl_" + userId;
+
+        // 1. Attempt initial cache retrieval
+        List<SysAcl> cachedAcls = redisService.getList(cacheKey, SysAcl.class);
+        if (!CollectionUtils.isEmpty(cachedAcls)) {
+            return cachedAcls;
+        }
+
+        // 2. Synchronize on the interned string to ensure thread-safety per user
+        synchronized (cacheKey.intern()) {
+
+            // Double-check cache to see if another thread populated it while this thread was waiting
+            cachedAcls = redisService.getList(cacheKey, SysAcl.class);
+            if (!CollectionUtils.isEmpty(cachedAcls)) {
+                return cachedAcls;
+            }
+
+            // 3. Handle Super Admin privilege (Short-circuit DB lookups)
+            if (isSuperAdmin()) {
+                return sysAclMapper.getAll();
+            }
+
+            // 4. Resolve permissions through RBAC hierarchy
+            List<Integer> userRoleIdList = sysRoleUserMapper.getRoleIdListByUserId(userId);
+            if (CollectionUtils.isEmpty(userRoleIdList)) {
+                return handleEmptyAclCache(cacheKey);
+            }
+
+            List<Integer> userAclIdList = sysRoleAclMapper.getAclIdListByRoleIdList(userRoleIdList);
+            if (CollectionUtils.isEmpty(userAclIdList)) {
+                return handleEmptyAclCache(cacheKey);
+            }
+
+            List<SysAcl> aclList = sysAclMapper.getByIdList(userAclIdList);
+
+            // 5. Populate Redis Cache with a TTL (1 hour + random jitter to prevent Cache Avalanche)
+            if (!CollectionUtils.isEmpty(aclList)) {
+                long ttl = 3600 + new Random().nextInt(300);
+                redisService.setEx(cacheKey, JsonMapper.obj2String(aclList), ttl);
+            } else {
+                handleEmptyAclCache(cacheKey);
+            }
+
+            return aclList;
+        }
+    }
+
+    /**
+     * Prevents "Cache Penetration" by storing an empty representation in Redis
+     * for users with no assigned permissions.
+     */
+    private List<SysAcl> handleEmptyAclCache(String key) {
+        List<SysAcl> emptyList = Lists.newArrayList();
+        // Cache empty result for 5 minutes to protect the database
+        redisService.setEx(key, JsonMapper.obj2String(emptyList), 300);
+        return emptyList;
+    }
+
+//    -------------- 2/28/2026 concurrency solution for getUserAclList end ---------------
+
+
     /**
      * Determine whether the current user is a super administrator.
      *
      * <p>
      * NOTE:
-     * This is a simplified rule for demonstration purposes.
+     * This rule has been simplified for demonstration purposes within this IAM project portfolio.
      * In production systems, super admin determination should
      * be based on configuration, role assignment, or database flags.
      * </p>
@@ -137,7 +226,7 @@ public class SysCoreService {
 
         // Here I defined a mock super administrator rule myself.
         // In practice, this should be modified according to the specific project requirements.
-        // It can be loaded from a configuration file, or you can designate a specific user or a specific role.
+        // It can be loaded from a configuration file, or we can designate a specific user or a specific role.
         SysUser sysUser = RequestHolder.getCurrentUser();
         if (sysUser.getMail().contains("admin")) {
             return true;
@@ -168,12 +257,13 @@ public class SysCoreService {
         if (isSuperAdmin()) {
             return true;
         }
-
+        //  每次从系统里取出同样url对应的权限 ， 这个值很少会变，对系统请求的压力不大
         List<SysAcl> aclList = sysAclMapper.getByUrl(url);
         if (CollectionUtils.isEmpty(aclList)) {
             return true;
         }
 
+        // 为啥在这里加缓存
         List<SysAcl> userAclList = getCurrentUserAclListFromCache();
         Set<Integer> userAclIdSet = userAclList.stream()
                 .map(acl -> acl.getId()).
@@ -181,10 +271,10 @@ public class SysCoreService {
 
         boolean hasValidAcl = false;
 
-        // 规则：只要有一个权限点有权限，那么我们就认为有访问权限
+        // Access Control Rule: Access is granted as long as the user possesses authorization for at least one permission item.
         for (SysAcl acl : aclList) {
-            // 判断一个用户是否具有某个权限点的访问权限
-            if (acl == null || acl.getStatus() != 1) { // 权限点无效
+            // Determine whether a user has a permission.
+            if (acl == null || acl.getStatus() != 1) { // Permission not found or Invalid permission
                 continue;
             }
 
@@ -219,9 +309,12 @@ public class SysCoreService {
      * @return list of ACLs assigned to current user
      */
     public List<SysAcl> getCurrentUserAclListFromCache() {
+
         int userId = RequestHolder.getCurrentUser().getId();
         String cacheValue = sysCacheService.getFromCache(CacheKeyConstants.USER_ACLS, String.valueOf(userId));
+
         if (StringUtils.isBlank(cacheValue)) {
+
             List<SysAcl> aclList = getCurrentUserAclList();
             if (!CollectionUtils.isEmpty(aclList)) {
                 sysCacheService.saveCache(JsonMapper.obj2String(aclList), 600, CacheKeyConstants.USER_ACLS, String.valueOf(userId));

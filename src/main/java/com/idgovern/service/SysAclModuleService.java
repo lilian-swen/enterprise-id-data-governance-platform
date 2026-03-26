@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import java.time.LocalDateTime;
 import java.util.List;
-
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 /**
  * ACL Module Service.
@@ -36,10 +36,11 @@ import java.util.List;
  * | Version | Date       | Author    | Description                     |
  * ------------------------------------------------------------------------
  * | 1.0     | 2016-03-01 | Lilian S.| Initial creation                |
+ * | 1.1     | 2016-02-23 | Lilian S.| ACL Module Service with structured professional logging. |
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 @Service
@@ -64,9 +65,20 @@ public class SysAclModuleService {
     @Transactional // Ensure the whole save operation is atomic
     public void save(AclModuleParam param) {
 
+        log.info("Request to create ACL Module",
+                kv("event", "ACL_MODULE_CREATE"),
+                kv("name", param.getName()),
+                kv("parentId", param.getParentId()));
+
         BeanValidator.check(param);
 
         if(checkExist(param.getParentId(), param.getName(), param.getId())) {
+
+            log.warn("ACL Module creation failed: duplicate name",
+                    kv("event", "ACL_MODULE_CREATE_FAIL"),
+                    kv("name", param.getName()),
+                    kv("parentId", param.getParentId()));
+
             throw new ParamException("A module with the same name already exists in this level");
         }
 
@@ -84,10 +96,15 @@ public class SysAclModuleService {
         aclModule.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
         aclModule.setOperateTime(LocalDateTime.now());
 
+        log.debug("Persisting new ACL Module", kv("aclModule", aclModule));
         sysAclModuleMapper.insertSelective(aclModule);
 
         // Save operation log
         sysLogService.saveAclModuleLog(null, aclModule);
+
+        log.info("Successfully created ACL Module",
+                kv("event", "ACL_MODULE_CREATE_SUCCESS"),
+                kv("aclModuleId", aclModule.getId()));
     }
 
 
@@ -100,9 +117,20 @@ public class SysAclModuleService {
     @Transactional // Fixes the internal call proxy issue
     public void update(AclModuleParam param) {
 
+        log.info("Request to update ACL Module",
+                kv("event", "ACL_MODULE_UPDATE"),
+                kv("aclModuleId", param.getId()),
+                kv("name", param.getName()));
+
         BeanValidator.check(param);
 
         if(checkExist(param.getParentId(), param.getName(), param.getId())) {
+
+            log.warn("ACL Module update failed: duplicate name",
+                    kv("event", "ACL_MODULE_UPDATE_FAIL"),
+                    kv("aclModuleId", param.getId()),
+                    kv("name", param.getName()));
+
             throw new ParamException("A module with the same name already exists in this level");
         }
 
@@ -124,19 +152,30 @@ public class SysAclModuleService {
         after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
         after.setOperateTime(LocalDateTime.now());
 
+        log.debug("Updating ACL Module with children if level changes",
+                kv("before", before),
+                kv("after", after));
+
         // Update module along with any child modules if level changes
         updateWithChild(before, after);
 
         sysLogService.saveAclModuleLog(before, after);
+
+        log.info("Successfully updated ACL Module",
+                kv("event", "ACL_MODULE_UPDATE_SUCCESS"),
+                kv("aclModuleId", after.getId()));
     }
 
     /**
      * Update an ACL module and recursively update child modules' levels if the parent level changes.
+     * TODO:
+     * To guarantee that the transactional behavior is applied correctly, the method should be refactored.
+     * A practical approach is to extract it into a new service class so that it can be invoked through the Spring proxy.
      *
      * @param before the original ACL module
      * @param after  the updated ACL module
      */
-    @Transactional // 如果要保证事务生效，需要调整这个方法，一个可行的方法是重新创建一个service类，然后把这个方法转移过去
+    @Transactional
     public void updateWithChild(SysAclModule before, SysAclModule after) {
 
         String newLevelPrefix = after.getLevel();
@@ -145,18 +184,24 @@ public class SysAclModuleService {
         if (!after.getLevel().equals(before.getLevel())) {
             String curLevel = before.getLevel() + "." + before.getId();
             List<SysAclModule> aclModuleList = sysAclModuleMapper.getChildAclModuleListByLevel(curLevel + "%");
+            // getChildAclModuleListByLevel may return extra records, so an additional check is required.
+            // For example, querying with "0.1*" might return:
+            // 0.1, 0.1.3, 0.11, 0.11.3
+            // However, the expected results are only: 0.1 and 0.1.3
+            // Therefore, we need to ensure that the value is either exactly "0.1"
+            // or starts with the prefix "0.1." to meet the condition.
 
             if (!CollectionUtils.isEmpty(aclModuleList)) {
                 for (SysAclModule aclModule : aclModuleList) {
                     String level = aclModule.getLevel();
+                    // an additional check
                     if (level.equals(curLevel) || level.indexOf(curLevel + ".") == 0) {
-                        // getChildAclModuleListByLevel可能会取出多余的内容，因此需要加个判断
-                        // 比如0.1* 可能取出0.1、0.1.3、0.11、0.11.3，而期望取出  0.1、0.1.3， 因此呢需要判断等于0.1或者以0.1.为前缀才满足条件
                         level = newLevelPrefix + level.substring(oldLevelPrefix.length());
                         aclModule.setLevel(level);
                     }
                 }
                 sysAclModuleMapper.batchUpdateLevel(aclModuleList);
+                log.debug("Updated child ACL Module levels", kv("childModules", aclModuleList.size()));
             }
         }
         sysAclModuleMapper.updateByPrimaryKeySelective(after);
@@ -172,7 +217,14 @@ public class SysAclModuleService {
      * @return true if exists, false otherwise
      */
     private boolean checkExist(Integer parentId, String aclModuleName, Integer deptId) {
-        return sysAclModuleMapper.countByNameAndParentId(parentId, aclModuleName, deptId) > 0;
+
+        boolean exists = sysAclModuleMapper.countByNameAndParentId(parentId, aclModuleName, deptId) > 0;
+        log.debug("Checking ACL Module existence",
+                kv("name", aclModuleName),
+                kv("parentId", parentId),
+                kv("exists", exists));
+
+        return exists;
     }
 
 
@@ -183,7 +235,9 @@ public class SysAclModuleService {
      * @return level string, e.g., "0.1.3"
      */
     private String getLevel(Integer aclModuleId) {
+
         SysAclModule aclModule = sysAclModuleMapper.selectByPrimaryKey(aclModuleId);
+
         if (aclModule == null) {
             return null;
         }
@@ -203,13 +257,19 @@ public class SysAclModuleService {
         Preconditions.checkNotNull(aclModule, "The ACL module to delete does not exist");
 
         if(sysAclModuleMapper.countByParentId(aclModule.getId()) > 0) {
+
+            log.warn("Cannot delete ACL Module: has child modules", kv("aclModuleId", aclModuleId));
             throw new ParamException("Cannot delete module with child modules");
         }
 
         if (sysAclMapper.countByAclModuleId(aclModule.getId()) > 0) {
+
+            log.warn("Cannot delete ACL Module: has associated ACL points", kv("aclModuleId", aclModuleId));
             throw new ParamException("Cannot delete module with associated ACL points");
         }
+
         sysAclModuleMapper.deleteByPrimaryKey(aclModuleId);
+        log.info("Successfully deleted ACL Module", kv("event", "ACL_MODULE_DELETE_SUCCESS"), kv("aclModuleId", aclModuleId));
     }
 
 }

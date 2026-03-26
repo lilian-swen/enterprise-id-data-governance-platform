@@ -1,0 +1,62 @@
+@startuml ACL_Module_Save_Sequence_Diagram
+
+title ACL Module - Save Flow Sequence Diagram
+
+actor Admin
+
+participant "AclModuleController" as Controller
+participant "SysAclModuleService" as Service
+participant "BeanValidator" as Validator
+participant "SysAclModuleMapper" as Mapper
+participant "LevelUtil" as LevelUtil
+participant "RequestHolder" as RequestHolder
+participant "IpUtil" as IpUtil
+participant "SysLogService" as LogService
+database "Database" as DB
+
+== Create ACL Module Request ==
+
+Admin -> Controller : createAclModule(param)
+
+Controller -> Service : save(param)
+activate Service
+
+Service -> Validator : check(param)
+
+Service -> Mapper : countByNameAndParentId(parentId, name, id)
+Mapper -> DB : SELECT COUNT(*)
+DB --> Mapper : count
+Mapper --> Service : count
+
+alt Duplicate Name Exists
+    Service -> Controller : throw ParamException
+    deactivate Service
+else No Duplicate
+    Service -> Mapper : selectByPrimaryKey(parentId)
+    Mapper -> DB : SELECT parent
+    DB --> Mapper : parentRecord
+    Mapper --> Service : parentLevel
+
+    Service -> LevelUtil : calculateLevel(parentLevel, parentId)
+    LevelUtil --> Service : newLevel
+
+    Service -> RequestHolder : getCurrentUser()
+    RequestHolder --> Service : user
+
+    Service -> IpUtil : getRemoteIp(request)
+    IpUtil --> Service : ipAddress
+
+    Service -> Mapper : insertSelective(SysAclModule)
+    Mapper -> DB : INSERT
+    DB --> Mapper : success
+    Mapper --> Service : generatedId
+
+    Service -> LogService : saveAclModuleLog(null, aclModule)
+
+    Service --> Controller : success
+    deactivate Service
+end
+
+Controller --> Admin : Response
+
+@enduml

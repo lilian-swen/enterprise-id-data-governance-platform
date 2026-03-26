@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.time.LocalDateTime;
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
+
 
 /**
  * ACL Service.
@@ -43,7 +46,7 @@ import java.time.LocalDateTime;
  * ------------------------------------------------------------------------
  *
  * @author Lilian S.
- * @version 1.0
+ * @version 1.1
  * @since 1.0
  */
 @Service
@@ -66,14 +69,21 @@ public class SysAclService {
     @Transactional
     public void save(AclParam param) {
 
-        log.info("Receive request to create ACL. Name: [{}], ModuleId: [{}]", param.getName(), param.getAclModuleId());
+        log.info("Received request to create ACL",
+                kv("event", "ACL_CREATE"),
+                kv("name", param.getName()),
+                kv("moduleId", param.getAclModuleId()),
+                kv("url", param.getUrl()),
+                kv("type", param.getType()));
 
         BeanValidator.check(param);
 
         if (checkExist(param.getAclModuleId(), param.getName(), param.getId())) {
 
-            log.warn("ACL creation failed: Name already exists. Name: [{}], ModuleId: [{}]",
-                    param.getName(), param.getAclModuleId());
+            log.warn("ACL creation failed: duplicate name detected",
+                    kv("event", "ACL_CREATE_FAIL"),
+                    kv("name", param.getName()),
+                    kv("moduleId", param.getAclModuleId()));
 
             throw new ParamException("An ACL with the same name already exists in this module");
         }
@@ -94,12 +104,15 @@ public class SysAclService {
         acl.setOperateTime(LocalDateTime.now());
         acl.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
 
-        log.debug("Persisting new SysAcl entity: {}", acl);
+        log.debug("Persisting new ACL entity", kv("acl", acl));
         sysAclMapper.insertSelective(acl);
 
         // Save operation log
         sysLogService.saveAclLog(null, acl);
-        log.info("Successfully created ACL. ID: [{}], Code: [{}]", acl.getId(), acl.getCode());
+        log.info("Successfully created ACL",
+                kv("event", "ACL_CREATE_SUCCESS"),
+                kv("aclId", acl.getId()),
+                kv("aclCode", acl.getCode()));
 
     }
 
@@ -113,9 +126,20 @@ public class SysAclService {
     @Transactional
     public void update(AclParam param) {
 
+        log.info("Received request to update ACL",
+                kv("event", "ACL_UPDATE"),
+                kv("aclId", param.getId()),
+                kv("name", param.getName()));
+
         BeanValidator.check(param);
 
         if (checkExist(param.getAclModuleId(), param.getName(), param.getId())) {
+            log.warn("ACL update failed: duplicate name detected",
+                    kv("event", "ACL_UPDATE_FAIL"),
+                    kv("aclId", param.getId()),
+                    kv("name", param.getName()),
+                    kv("moduleId", param.getAclModuleId()));
+
             throw new ParamException("An ACL with the same name already exists in this module");
         }
 
@@ -137,8 +161,10 @@ public class SysAclService {
         after.setOperateTime(LocalDateTime.now());
         after.setOperateIp(IpUtil.getRemoteIp(RequestHolder.getCurrentRequest()));
 
+        log.debug("Updating ACL entity", kv("before", before), kv("after", after));
         sysAclMapper.updateByPrimaryKeySelective(after);
         sysLogService.saveAclLog(before, after);
+        log.info("Successfully updated ACL", kv("event", "ACL_UPDATE_SUCCESS"), kv("aclId", after.getId()));
     }
 
 
@@ -151,7 +177,14 @@ public class SysAclService {
      * @return true if an ACL exists with the same name, false otherwise
      */
     public boolean checkExist(int aclModuleId, String name, Integer id) {
-        return sysAclMapper.countByNameAndAclModuleId(aclModuleId, name, id) > 0;
+
+        boolean exists = sysAclMapper.countByNameAndAclModuleId(aclModuleId, name, id) > 0;
+        log.debug("Check ACL existence",
+                kv("event", "ACL_CHECK_EXIST"),
+                kv("name", name),
+                kv("moduleId", aclModuleId),
+                kv("exists", exists));
+        return exists;
     }
 
 
@@ -168,7 +201,9 @@ public class SysAclService {
     public String generateCode() {
 
         // Generates a 36-character unique string like: 550e8400-e29b-41d4-a716-446655440000
-        return UUID.randomUUID().toString().replace("-", "");
+        String code = UUID.randomUUID().toString().replace("-", "");
+        log.debug("Generated ACL code", kv("event", "ACL_GENERATE_CODE"), kv("code", code));
+        return code;
     }
 
 
@@ -185,6 +220,13 @@ public class SysAclService {
 
         // 1. Get the total count
         int count = sysAclMapper.countByAclModuleId(aclModuleId);
+
+        log.info("Fetching paginated ACLs",
+                kv("event", "ACL_PAGE_FETCH"),
+                kv("moduleId", aclModuleId),
+                kv("total", count),
+                kv("pageNo", page.getPageNo()),
+                kv("pageSize", page.getPageSize()));
 
         if (count > 0) {
 

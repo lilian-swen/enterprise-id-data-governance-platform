@@ -13,8 +13,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
+import static net.logstash.logback.argument.StructuredArguments.kv;
+
 
 
 /**
@@ -37,6 +40,7 @@ import org.springframework.web.servlet.ModelAndView;
  * @version 1.1
  * @since 1.0
  */
+@Slf4j
 @RestController
 @RequestMapping("/sys/log")
 @RequiredArgsConstructor
@@ -56,6 +60,9 @@ public class SysLogController {
     @Operation(summary = "Render Log Page", description = "Returns the JSP view for the system audit log dashboard.")
     @GetMapping("/log.page")
     public ModelAndView page() {
+
+        log.info("Loading system log dashboard", kv("event", "LOG_PAGE_LOAD"));
+
         return new ModelAndView("log");
     }
 

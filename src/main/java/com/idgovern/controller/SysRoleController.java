@@ -19,13 +19,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+import static net.logstash.logback.argument.StructuredArguments.kv;
 
 
 /**
@@ -54,6 +55,7 @@ import java.util.stream.Collectors;
  * @version 1.2
  * @since 1.0
  */
+@Slf4j
 @RestController
 @RequestMapping("/sys/role")
 @RequiredArgsConstructor
@@ -101,6 +103,8 @@ public class SysRoleController {
     @GetMapping("/role.page")
     public ModelAndView page() {
 
+        log.info("Loading role management page", kv("event", "ROLE_PAGE_LOAD"));
+
         return new ModelAndView("role");
     }
 
@@ -113,9 +117,11 @@ public class SysRoleController {
      */
     @Operation(summary = "Create Role", description = "Adds a new role to the system.")
     @PostMapping("/save.json")
-    public JsonData saveRole(@Parameter(description = "Role creation details") @Valid @RequestBody RoleParam param) {
+    public JsonData saveRole(@Parameter(description = "Role creation details") @Valid RoleParam param) {
 
         sysRoleService.save(param);
+        log.info("Created new role", kv("event", "ROLE_CREATE"), kv("roleName", param.getName()));
+
         return JsonData.success();
     }
 
@@ -136,10 +142,15 @@ public class SysRoleController {
             @ApiResponse(responseCode = "404", description = "Target role ID not found"),
             @ApiResponse(responseCode = "403", description = "Insufficient permissions to modify roles")
     })
-    @PutMapping("/update.json")
-    public JsonData updateRole(@Parameter(description = "Updated role object including ID", required = true) @Valid @RequestBody RoleParam param) {
+    @PostMapping("/update.json")
+    public JsonData updateRole(@Parameter(description = "Updated role object including ID", required = true) @Valid RoleParam param) {
 
         sysRoleService.update(param);
+        log.info("Updated role metadata",
+                kv("event", "ROLE_UPDATE"),
+                kv("roleId", param.getId()),
+                kv("roleName", param.getName()));
+
         return JsonData.success();
     }
 
@@ -153,7 +164,10 @@ public class SysRoleController {
     @GetMapping("/list.json")
     public JsonData list() {
 
-        return JsonData.success(sysRoleService.getAll());
+        List<?> roles = sysRoleService.getAll();
+        log.info("Retrieved all roles", kv("event", "ROLE_LIST"), kv("count", roles.size()));
+
+        return JsonData.success(roles);
     }
 
 
@@ -167,7 +181,9 @@ public class SysRoleController {
     @GetMapping("/roleTree.json")
     public JsonData roleTree(@Parameter(description = "Target Role ID", required = true) @RequestParam("roleId") int roleId) {
 
-        return JsonData.success(sysTreeService.roleTree(roleId));
+        Object tree = sysTreeService.roleTree(roleId);
+        log.info("Fetched role permission tree", kv("event", "ROLE_TREE_FETCH"), kv("roleId", roleId));
+        return JsonData.success(tree);
     }
 
 
@@ -179,12 +195,14 @@ public class SysRoleController {
      * @return success response in JSON format
      */
     @Operation(summary = "Update Role Permissions", description = "Replaces the current ACL assignments for a role with a new set of permissions.")
-    @PutMapping("/changeAcls.json")
+    @PostMapping("/changeAcls.json")
     public JsonData changeAcls(@Parameter(description = "Target Role ID", required = true) @RequestParam("roleId") int roleId,
                                @Parameter(description = "Comma-separated list of ACL IDs") @RequestParam(value = "aclIds", required = false, defaultValue = "") String aclIds) {
 
         List<Integer> aclIdList = StringUtil.splitToListInt(aclIds);
         sysRoleAclService.changeRoleAcls(roleId, aclIdList);
+
+        log.info("Updated role ACL assignments", kv("event", "ROLE_ACL_UPDATE"), kv("roleId", roleId), kv("aclIds", aclIdList));
         return JsonData.success();
     }
 
@@ -197,12 +215,14 @@ public class SysRoleController {
      * @return success response in JSON format
      */
     @Operation(summary = "Update Role Users", description = "Updates the set of users assigned to a specific role.")
-    @PutMapping("/changeUsers.json")
+    @PostMapping("/changeUsers.json")
     public JsonData changeUsers(@Parameter(description = "Target Role ID", required = true) @RequestParam("roleId") int roleId,
                                 @Parameter(description = "Comma-separated list of User IDs") @RequestParam(value = "userIds", required = false, defaultValue = "") String userIds) {
 
         List<Integer> userIdList = StringUtil.splitToListInt(userIds);
         sysRoleUserService.changeRoleUsers(roleId, userIdList);
+
+        log.info("Updated role-user assignments", kv("event", "ROLE_USER_UPDATE"), kv("roleId", roleId), kv("userIds", userIdList));
         return JsonData.success();
 
     }
@@ -241,6 +261,10 @@ public class SysRoleController {
         Map<String, List<SysUser>> map = Maps.newHashMap();
         map.put("selected", selectedUserList);
         map.put("unselected", unselectedUserList);
+
+        log.info("Fetched role user assignments", kv("event", "ROLE_USER_FETCH"), kv("roleId", roleId),
+                kv("selectedCount", selectedUserList.size()), kv("unselectedCount", unselectedUserList.size()));
+
         return JsonData.success(map);
     }
 }

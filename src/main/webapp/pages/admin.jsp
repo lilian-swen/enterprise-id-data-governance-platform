@@ -100,7 +100,7 @@
                     <li class="">
                         <a class="popstyle" href="/sys/dept/dept.page" target="_blank">
                             <i class="menu-icon fa fa-caret-right"></i>
-                            Dept. Management
+                            User Management
                         </a>
                         <b class="arrow"></b>
                     </li>

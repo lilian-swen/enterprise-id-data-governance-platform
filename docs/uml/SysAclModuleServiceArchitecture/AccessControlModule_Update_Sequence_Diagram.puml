@@ -1,0 +1,80 @@
+@startuml ACL_Module_Update_With_Child_Cascade_Sequence_Diagram
+
+title ACL Module - Update With Child Cascade Sequence Diagram
+
+actor Admin
+
+participant "AclModuleController" as Controller
+participant "SysAclModuleService" as Service
+participant "BeanValidator" as Validator
+participant "SysAclModuleMapper" as Mapper
+participant "LevelUtil" as LevelUtil
+participant "SysLogService" as LogService
+database "Database" as DB
+
+== Update ACL Module Request ==
+
+Admin -> Controller : updateAclModule(param)
+
+Controller -> Service : update(param)
+activate Service
+
+Service -> Validator : check(param)
+
+Service -> Mapper : countByNameAndParentId(parentId, name, id)
+Mapper -> DB : SELECT COUNT(*)
+DB --> Mapper : count
+Mapper --> Service : count
+
+alt Duplicate Name Exists
+    Service -> Controller : throw ParamException
+    deactivate Service
+else No Duplicate
+
+    Service -> Mapper : selectByPrimaryKey(id)
+    Mapper -> DB : SELECT module
+    DB --> Mapper : beforeRecord
+    Mapper --> Service : before
+
+    Service -> Mapper : selectByPrimaryKey(parentId)
+    Mapper -> DB : SELECT parent
+    DB --> Mapper : parentLevel
+    Mapper --> Service : parentLevel
+
+    Service -> LevelUtil : calculateLevel(parentLevel, parentId)
+    LevelUtil --> Service : newLevel
+
+    == Cascade Child Update (if level changed) ==
+
+    alt Level Changed
+
+        Service -> Mapper : getChildAclModuleListByLevel(oldLevel + "." + id + "%")
+        Mapper -> DB : SELECT children by level prefix
+        DB --> Mapper : childList
+        Mapper --> Service : childList
+
+        Service -> Service : adjust child level prefix in memory
+
+        Service -> Mapper : batchUpdateLevel(childList)
+        Mapper -> DB : BATCH UPDATE
+        DB --> Mapper : success
+
+    else Level Not Changed
+        note right of Service
+          No cascade required
+        end note
+    end
+
+    Service -> Mapper : updateByPrimaryKeySelective(after)
+    Mapper -> DB : UPDATE module
+    DB --> Mapper : success
+
+    Service -> LogService : saveAclModuleLog(before, after)
+
+    Service --> Controller : success
+    deactivate Service
+end
+
+Controller --> Admin : Response
+
+@enduml
